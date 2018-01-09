@@ -1096,6 +1096,11 @@ def template_gen(picks, st, length, swin='all', prepick=0.05,
                           'either gain or check. Not using in template.')
             print(tr)
             st.remove(tr)
+        #also check that there are no NaNs in the template, otherwise remove    
+        elif any(np.isnan(tr.data)):
+            warnings.warn('Template trace contains NaNs. Not using in template.')
+            print(tr)
+            st.remove(tr)
         else:
             st_stachans.append('.'.join([tr.stats.station, 
                         ''.join([tr.stats.channel[0], tr.stats.channel[-1]])]))
