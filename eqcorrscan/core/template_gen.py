@@ -834,10 +834,6 @@ def template_gen(picks, st, length, swin='all', prepick=0.05,
             print(tr)
             st.remove(tr)
         #also check that there are no NaNs in the template, otherwise remove    
-        elif any(np.isnan(tr.data)):
-            warnings.warn('Template trace contains NaNs. Not using in template.')
-            print(tr)
-            st.remove(tr)
         else:
             st_stachans.append('.'.join([tr.stats.station, 
                         ''.join([tr.stats.channel[0], tr.stats.channel[-1]])]))
@@ -904,6 +900,11 @@ def template_gen(picks, st, length, swin='all', prepick=0.05,
                 elif len(tr_cut.data) < (tr_cut.stats.sampling_rate *
                                         length):
                     print('Template trace too short for %s.%s' %
+                          (tr_cut.stats.station, tr_cut.stats.channel))
+                    continue
+                #Don't use template if it contains NaNs
+                if any(np.isnan(tr_cut.data)):
+                    print('Template trace contains NaN, not using %s.%s' %
                           (tr_cut.stats.station, tr_cut.stats.channel))
                     continue
                 debug_print('Cut starttime = %s\nCut endtime %s' %
