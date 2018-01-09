@@ -900,6 +900,12 @@ def template_gen(picks, st, length, swin='all', prepick=0.05,
                 if len(tr_cut.data) == (tr_cut.stats.sampling_rate *
                                         length) + 1:
                     tr_cut.data = tr_cut.data[0:-1]
+                # Don't use the template if it's too short    
+                elif len(tr_cut.data) < (tr_cut.stats.sampling_rate *
+                                        length):
+                    print('Template trace too short for %s.%s' %
+                          (tr_cut.stats.station, tr_cut.stats.channel))
+                    continue
                 debug_print('Cut starttime = %s\nCut endtime %s' %
                             (str(tr_cut.stats.starttime),
                              str(tr_cut.stats.endtime)), 0, debug)
