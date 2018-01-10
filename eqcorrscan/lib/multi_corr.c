@@ -389,10 +389,10 @@ int normxcorr_fftw_main(float *templates, long template_len, long n_templates,
         }
     }
     if (unused_corr == 1){
-        if (status != 999){
-            // Output a known error code, if status is already at this level
+        if (status != 999999){
+            // O	utput a known error code, if status is already at this level
             // there are bigger problems!
-            status = 999;
+            status = 999999;
         }
     }
 
@@ -643,11 +643,11 @@ int multi_normxcorr_fftw(float *templates, long n_templates, long template_len, 
 
     // Conduct error handling
     for (i = 0; i < n_channels; ++i){
-        if (results[i] == 999 && r == 0){
+        if (results[i] == 999999 && r == 0){
             r = results[i];
-        } else if (r == 999 && results[i] == 999){
-            r = 999;
-        } else if (r == 999 && results[i] != 999){
+        } else if (r == 999999 && results[i] == 999999){
+            r = 999999;
+        } else if (r == 999999 && results[i] != 999999){
             r += inner_status;
         } else if (r != 0){
             r += inner_status;
