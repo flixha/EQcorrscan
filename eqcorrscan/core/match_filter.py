@@ -57,7 +57,7 @@ def temporary_directory():
         shutil.rmtree(dir_name)
 
 
-def _spike_test(stream, percent=0.99, multiplier=1e6):
+def _spike_test(stream, percent=0.9999, multiplier=1e6):
     """
     Check for very large spikes in data and raise an error if found.
 

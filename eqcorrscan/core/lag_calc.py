@@ -150,6 +150,7 @@ def _channel_loop(detection, template, min_cc, detection_id, interpolate, i,
     :rtype: :class:`obspy.core.event.Event`
     """
     from eqcorrscan.core.match_filter import normxcorr2
+    import math
     event = Event()
     s_stachans = {}
     cccsum = 0
@@ -180,7 +181,7 @@ def _channel_loop(detection, template, min_cc, detection_id, interpolate, i,
                 ccc = normxcorr2(tr.data, image[0].data)
                 cc_max = np.amax(ccc)
                 shift = np.argmax(ccc) * image[0].stats.delta
-            # Convert the maximum cross-correlation time to an actual time
+            # Convert the maximum cross-correlation time to an actual time            
             if math.isnan(shift) or math.isnan(cc_max):
                 print('Problematic trace, no cross correlation possible')
                 continue
@@ -196,7 +197,7 @@ def _channel_loop(detection, template, min_cc, detection_id, interpolate, i,
                 print('Template is %i long' % len(tr.data))
                 continue
             cc_max = np.amax(ccc)
-            if math.isnan(shift) or math.isnan(cc_max):
+            if math.isnan(cc_max):
                 print('Problematic trace, no cross correlation possible')
                 continue
             else:

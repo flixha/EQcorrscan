@@ -539,12 +539,12 @@ def fftw_normxcorr(templates, stream, pads, threaded=False, *args, **kwargs):
     if ret < 0:
         raise MemoryError()
     #elif ret not in [0, 999]:
-    elif ret not in range(0, 1000000, 1):
+    elif ret not in range(0, 1000000000, 1):
         print('Error in C code (possible normalisation error)')
         print('Maximum ccc %f at %i' % (ccc.max(), ccc.argmax()))
         print('Minimum ccc %f at %i' % (ccc.min(), ccc.argmin()))
         raise CorrelationError("Internal correlation error")
-    elif ret == 999999:
+    elif ret == 999999999:
         msg = ("Some correlations not computed, are there "
                "zeros in data? If not, consider increasing gain.")
         print(msg)
@@ -742,14 +742,14 @@ def fftw_multi_normxcorr(template_array, stream_array, pad_array, seed_ids,
     if ret < 0:
         raise MemoryError()
     #elif ret not in [0, 999]:
-    elif ret not in range(0, 1000000, 1):
+    elif ret not in range(0, 1000000000, 1):
         print('Error in C code (possible normalisation error)')
         print('Maximum cccs %f at %s' %
               (cccs.max(), np.unravel_index(cccs.argmax(), cccs.shape)))
         print('Minimum cccs %f at %s' %
               (cccs.min(), np.unravel_index(cccs.argmin(), cccs.shape)))
         raise CorrelationError("Internal correlation error")
-    elif ret == 999999:
+    elif ret == 999999999:
         msg = ("Some correlations not computed, are there "
                "zeros in data? If not, consider increasing gain.")
         print(msg)
