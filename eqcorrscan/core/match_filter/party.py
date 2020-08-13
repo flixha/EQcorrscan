@@ -718,8 +718,6 @@ class Party(object):
             if os.path.isfile(filename) and overwrite:
                 os.remove(filename)
             for family in self.families:
-                if os.path.isfile(filename) and overwrite:
-                    os.remove(filename)
                 write_detections(fname=filename, detections=family.detections,
                                  mode="a")
         elif format.lower() == 'tar':
