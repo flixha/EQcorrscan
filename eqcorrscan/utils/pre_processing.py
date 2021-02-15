@@ -208,7 +208,9 @@ def shortproc(st, lowcut, highcut, filt_order, samp_rate, parallel=False,
             num_cores = cpu_count()
         if num_cores > len(st):
             num_cores = len(st)
+        Logger.info('Starting pre-processing Pool') #FH
         pool = Pool(processes=num_cores)
+        Logger.info('Started pre-processing Pool') #FH
         results = [pool.apply_async(process, (tr,), {
             'lowcut': lowcut, 'highcut': highcut, 'filt_order': filt_order,
             'samp_rate': samp_rate, 'starttime': starttime,
@@ -373,7 +375,9 @@ def dayproc(st, lowcut, highcut, filt_order, samp_rate, starttime,
             num_cores = cpu_count()
         if num_cores > len(st):
             num_cores = len(st)
+        Logger.info('Starting pre-processing Pool') #FH
         pool = Pool(processes=num_cores)
+        Logger.info('Started pre-processing Pool') #FH
         results = [pool.apply_async(process, (tr,), {
             'lowcut': lowcut, 'highcut': highcut, 'filt_order': filt_order,
             'samp_rate': samp_rate, 'starttime': starttime, 'clip': True,
