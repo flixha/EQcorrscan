@@ -1568,12 +1568,14 @@ def plot_repicked(template, picks, det_stream, **kwargs):
     axis.set_xlim([0, max(lengths)])
     if len(template) > 1:
         axis = axes[len(template) - 1]
+        axis_legend = axes[0]
     else:
         axis = axes
+        axis_legend = axes
     axis.set_xlabel('Time (s) from %s' %
                     mintime.datetime.strftime('%Y/%m/%d %H:%M:%S.%f'))
-    axes[0].legend(lines, labels, loc='upper right', framealpha=1)
-    axes[0].set_zorder(2)
+    axis_legend.legend(lines, labels, loc='upper right', framealpha=1)
+    axis_legend.set_zorder(2)
     title = kwargs.get("title") or None
     if title:
         if len(template) > 1:
@@ -1615,7 +1617,7 @@ def svd_plot(svstreams, svalues, stachans, **kwargs):
     >>> import glob
     >>> from eqcorrscan.utils.plotting import svd_plot
     >>> from eqcorrscan.utils.clustering import svd, svd_to_stream
-    >>> wavefiles = glob.glob('eqcorrscan/tests/test_data/WAV/TEST_/*')
+    >>> wavefiles = glob.glob('eqcorrscan/tests/test_data/WAV/TEST_/2013-*')
     >>> streams = [read(w) for w in wavefiles[1:10]]
     >>> stream_list = []
     >>> for st in streams:
@@ -1636,7 +1638,7 @@ def svd_plot(svstreams, svalues, stachans, **kwargs):
         from eqcorrscan.utils.plotting import svd_plot
         from eqcorrscan.utils.clustering import svd, svd_to_stream
         wavefiles = glob.glob(os.path.realpath('../../..') +
-                             '/tests/test_data/WAV/TEST_/*')
+                             '/tests/test_data/WAV/TEST_/2013-*')
         streams = [read(w) for w in wavefiles[1:10]]
         stream_list = []
         for st in streams:

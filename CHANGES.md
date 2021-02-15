@@ -1,4 +1,18 @@
 ## Current
+* core.party.write
+  - BUG-FIX: When `format='tar'` is selected, added a check for .tgz-file
+    suffix before checking the filename against an existing file. Previously,
+    when a filename without '.tgz'-suffix was supplied, then the file was
+    overwritten against the function's intention.
+  - Add option `overwrite=True` to allow overwriting of existing files.
+* utils/archive_read.py
+  - Add support for wildcard-comparisons in the list of requested stations and
+    channels.
+  - New option `arctype='SDS'` to read from a SeisComp Data Structure (SDS).
+    This option is also available in `utils.clustering.extract_detections` and
+    in `utils.archive_read._check_available_data`.
+
+## 0.4.2
 * Add seed-ids to the _spike_test's message.
 * utils.correlation
   - Cross-correlation normalisation errors no-longer raise an error
@@ -10,6 +24,28 @@
     within regions where correlations should not be computed (spikes, step
     artifacts due to incorrectly padding data gaps).
   - USERS SHOULD BE CAREFUL TO CHECK THEIR DATA IF THEY SEE THESE WARNINGS
+* utils.mag_calc.amp_pick_event
+  - Added option to output IASPEI standard amplitudes, with static amplification
+    of 1 (rather than 2080 as per Wood Anderson specs).
+  - Added `filter_id` and `method_id` to amplitudes to make these methods more
+    traceable.
+* core.match_filter
+  - Bug-fix - cope with data that are too short with `ignore_bad_data=True`.
+    This flag is generally not advised, but when used, may attempt to trim all
+    data to zero length.  The expected behaviour is to remove bad data and run
+    with the remaining data.
+  - Party:
+    - decluster now accepts a hypocentral_separation argument. This allows
+      the inclusion of detections that occur close in time, but not in space.
+      This is underwritten by a new findpeaks.decluster_dist_time function
+      based on a new C-function.
+  - Tribe:
+    - Add monkey-patching for clients that do not have a `get_waveforms_bulk`
+      method for use in `.client_detect`. See issue #394.
+* utils.pre_processing
+  - Only templates that need to be reshaped are reshaped now - this can be a lot
+    faster.
+  
 ## 0.4.1
 * core.match_filter
   - BUG-FIX: Empty families are no longer run through lag-calc when using 
