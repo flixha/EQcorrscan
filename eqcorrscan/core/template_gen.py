@@ -771,11 +771,11 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05,
     # Cut the data
     st1 = Stream()
     for _starttime in starttimes:
-        Logger.info(f"Working on channel {_starttime['station']}."
+        Logger.debug(f"Working on channel {_starttime['station']}."
                     f"{_starttime['channel']}")
         tr = st.select(
             station=_starttime['station'], channel=_starttime['channel'])[0]
-        Logger.info(f"Found Trace {tr}")
+        Logger.debug(f"Found Trace {tr}")
         used_tr = False
         for pick in _starttime['picks']:
             if not pick.phase_hint:
