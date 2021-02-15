@@ -76,7 +76,7 @@ def _finalise_figure(fig, **kwargs):  # pragma: no cover
     if title:
         fig.suptitle(title)
     if save:
-        fig.savefig(savefile, bbox_inches="tight")
+        fig.savefig(savefile, bbox_inches="tight", dpi=300)
         Logger.info("Saved figure to {0}".format(savefile))
     if show:
         plt.show(block=True)
@@ -517,7 +517,7 @@ def cumulative_detections(dates=None, template_names=None, detections=None,
         else:
             ax.plot(plot_dates, counts, linestyle,
                     color=color, label=template_names[k],
-                    linewidth=2.0, drawstyle='steps')
+                    linewidth=1.0, drawstyle='steps')
             ax.set_ylabel('Cumulative detections')
     ax.set_xlabel('Date')
     # Set formatters for x-labels
@@ -823,7 +823,7 @@ def multi_trace_plot(traces, corr=True, stack='linstack', **kwargs):
             ind = i
         else:
             ind = i + 1
-        axes[ind].plot(x, y, 'k', linewidth=1.1)
+        axes[ind].plot(x, y, 'k', linewidth=0.6)
         axes[ind].yaxis.set_ticks([])
     traces = [Stream(trace) for trace in traces]
     if stack in ['linstack', 'PWS']:
@@ -834,7 +834,7 @@ def multi_trace_plot(traces, corr=True, stack='linstack', **kwargs):
         y = tr.data
         x = np.arange(len(y))
         x = x / tr.stats.sampling_rate
-        axes[0].plot(x, y, 'r', linewidth=2.0)
+        axes[0].plot(x, y, 'r', linewidth=0.8)
         axes[0].set_ylabel('Stack', rotation=0)
         axes[0].yaxis.set_ticks([])
     else:
@@ -971,7 +971,7 @@ def detection_multiplot(stream, template, times, streamcolour='k',
                        dt.timedelta((j * image.stats.delta) / 86400)
                        for j in range(len(image.data))]
         axis.plot(image_times, image.data / max(image.data),
-                  streamcolour, linewidth=1.2)
+                  streamcolour, linewidth=0.5)
         for time in times:
             lagged_time = UTCDateTime(time) + (template_tr.stats.starttime -
                                                mintime)
@@ -996,7 +996,7 @@ def detection_multiplot(stream, template, times, streamcolour='k',
             normalizer /= max(template_tr.data)
             axis.plot(template_times,
                       template_tr.data * normalizer,
-                      templatecolour, linewidth=1.2)
+                      templatecolour, linewidth=0.5)
         ylab = '.'.join([template_tr.stats.station,
                          template_tr.stats.channel])
         axis.set_ylabel(ylab, rotation=0,
@@ -1393,15 +1393,15 @@ def pretty_template_plot(template, background=False, event=False,
             by = btr.data
             bx = np.linspace(0, (len(by) - 1) * btr.stats.delta, len(by))
             bx += bdelay
-            axis.plot(bx, by, 'k', linewidth=1)
-            template_line, = axis.plot(x, y, 'r', linewidth=1.1,
+            axis.plot(bx, by, 'k', linewidth=0.5)
+            template_line, = axis.plot(x, y, 'r', linewidth=0.6,
                                        label='Template')
             if i == 0:
                 lines.append(template_line)
                 labels.append('Template')
             lengths.append(max(bx[-1], x[-1]))
         else:
-            template_line, = axis.plot(x, y, 'k', linewidth=1.1,
+            template_line, = axis.plot(x, y, 'k', linewidth=0.6,
                                        label='Template')
             if i == 0:
                 lines.append(template_line)
@@ -1433,7 +1433,7 @@ def pretty_template_plot(template, background=False, event=False,
                     label = 'Unknown pick'
                 pdelay = pick.time - mintime
                 # print(pdelay)
-                line = axis.axvline(x=pdelay, color=pcolor, linewidth=2,
+                line = axis.axvline(x=pdelay, color=pcolor, linewidth=1,
                                     linestyle='--', label=label)
                 if label not in labels:
                     lines.append(line)
@@ -1533,10 +1533,10 @@ def plot_repicked(template, picks, det_stream, **kwargs):
             by = by / max(by)
         bx = np.linspace(0, (len(by) - 1) * btr.stats.delta, len(by))
         bx += bdelay
-        axis.plot(bx, by, 'k', linewidth=1.5)
+        axis.plot(bx, by, 'k', linewidth=0.7)
         if len(tr_picks) > 0:
             template_line, = axis.plot(
-                x, y, 'r', linewidth=1.6, label='Template')
+                x, y, 'r', linewidth=0.8, label='Template')
             if not pick.phase_hint:
                 pcolor = 'k'
                 label = 'Unknown pick'
@@ -1550,7 +1550,7 @@ def plot_repicked(template, picks, det_stream, **kwargs):
                 pcolor = 'k'
                 label = 'Unknown pick'
             pdelay = pick.time - mintime
-            line = axis.axvline(x=pdelay, color=pcolor, linewidth=2,
+            line = axis.axvline(x=pdelay, color=pcolor, linewidth=1,
                                 linestyle='--', label=label)
             if label not in labels:
                 lines.append(line)
@@ -1663,7 +1663,7 @@ def svd_plot(svstreams, svalues, stachans, **kwargs):
         for i, tr in enumerate(plot_traces):
             y = tr.data
             x = np.linspace(0, len(y) * tr.stats.delta, len(y))
-            axes[i].plot(x, y, 'k', linewidth=1.1)
+            axes[i].plot(x, y, 'k', linewidth=0.6)
             ylab = 'SV %s = %s' % (i + 1, round(sval[i] / len(sval), 2))
             axes[i].set_ylabel(ylab, rotation=0)
             axes[i].yaxis.set_ticks([])
@@ -1771,7 +1771,7 @@ def plot_synth_real(real_template, synthetic, channels=False, **kwargs):
             y = tr.data
             y = y / float(max(abs(y)))
             x = np.linspace(0, len(y) * tr.stats.delta, len(y))
-            axis.plot(x, y, colours[j], linewidth=2.0, label=labels[j])
+            axis.plot(x, y, colours[j], linewidth=1.0, label=labels[j])
             axis.get_yaxis().set_ticks([])
         ylab = stachan[0] + '.' + stachan[1] + ' cc=' + str(round(corr, 2))
         axis.set_ylabel(ylab, rotation=0)
@@ -2012,7 +2012,7 @@ def _spec_trace(trace, cmap=None, wlen=0.4, log=False, trc='k',
     ax2 = ax1.twinx()
     y = trace.data
     x = np.linspace(0, len(y) / trace.stats.sampling_rate, len(y))
-    ax2.plot(x, y, color=trc, linewidth=2.0, alpha=tralpha)
+    ax2.plot(x, y, color=trc, linewidth=1.0, alpha=tralpha)
     ax2.set_xlim(min(x), max(x))
     ax2.set_ylim(min(y) * 2, max(y) * 2)
     if title:
@@ -2103,7 +2103,7 @@ def subspace_detector_plot(detector, stachans, **kwargs):
                 axis = axes[row, column]
             if row == 0:
                 axis.set_title('.'.join(stachan))
-            axis.plot(x, vector, 'k', linewidth=1.1)
+            axis.plot(x, vector, 'k', linewidth=0.6)
             if column == 0:
                 axis.set_ylabel('Basis %s' % (row + 1), rotation=0)
             if row == nrows - 1:
@@ -2194,7 +2194,7 @@ def subspace_fc_plot(detector, stachans, **kwargs):
                 fcs.append(float(np.dot(ai[:j].T, ai[:j])))
             axis.plot(fcs, color='grey')
         avg = [np.average(_dim[1]) for _dim in av_fc_dict.items()]
-        axis.plot(avg, color='red', linewidth=3.)
+        axis.plot(avg, color='red', linewidth=1.5)
         if column % ncols == 0 or column == 0:
             axis.set_ylabel('Frac. E Capture (Fc)')
         if column + 1 > len(stachans) - ncols:
