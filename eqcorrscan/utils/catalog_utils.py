@@ -265,7 +265,8 @@ def get_ordered_trace_indices(stream, event, sort_by="distance"):
         for j, tr in enumerate(stream):
             # Don't change stats.distance if it is set already
             if hasattr(tr.stats, 'distance'):
-                if tr.stats.distance is not None:
+                if (tr.stats.distance is not None and
+                  not np.isnan(tr.stats.distance)):
                     value_list[j] = tr.stats.distance
                     continue
             # Set default distance to 999 degrees.
