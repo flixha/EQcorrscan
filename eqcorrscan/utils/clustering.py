@@ -88,7 +88,10 @@ def cross_chan_correlation(st1, streams, shift_len=0.0, xcorr_func='fftw',
     # positions should probably have half the length of the correlogram
     # subtracted, and possibly be converted to seconds?
     _coherances = np.empty(n_streams)
-    _positions = np.empty((n_streams, no_chans.max()))
+    # _positions = np.empty((n_streams, no_chans.max()))
+    # if there is any trace that yields no correlations, then the max()-
+    # argument gets the wrong size for the array
+    _positions = np.empty((n_streams, len(cccsums[0]) ))
     _coherances.fill(np.nan)
     _positions.fill(np.nan)
     for coh_ind, stream_ind in enumerate(stream_indexes):

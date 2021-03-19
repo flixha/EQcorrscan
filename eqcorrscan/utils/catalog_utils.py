@@ -252,6 +252,7 @@ def get_ordered_trace_indices(stream, event, sort_by="distance"):
     """
     from operator import itemgetter
     from obspy import UTCDateTime
+    import numpy as np
 
     if not event:
         Logger.warning('No event information found to sort stream.')

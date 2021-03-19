@@ -726,6 +726,9 @@ def _fftw_stream_xcorr(templates, stream, stack=True, *args, **kwargs):
             if state:
                 chan.append((seed_id.split('.')[1],
                              seed_id.split('.')[-1].split('_')[0]))
+    # TODO: may need to add a line here to return only the part of cccsums
+    #       that refers to used channels. If any channels are never used, then
+    #       line in cccsums[.] may need to be removed
     return cccsums, no_chans, chans
 
 
