@@ -1,0 +1,513 @@
+...2020-11-19 11:19:42,410	eqcorrscan.utils.pre_processing	INFO	Data for BW.RJOB..EHN is not as long as needed, padding
+2020-11-19 11:19:42,418	eqcorrscan.utils.pre_processing	INFO	Data for BW.RJOB..EHE is not as long as needed, padding
+2020-11-19 11:19:42,426	eqcorrscan.utils.pre_processing	INFO	Data for BW.RJOB..EHZ is not as long as needed, padding
+2020-11-19 11:19:42,435	eqcorrscan.utils.pre_processing	INFO	Data for BW.RJOB..EHN is not as long as needed, padding
+2020-11-19 11:19:42,449	eqcorrscan.utils.pre_processing	INFO	Data for BW.RJOB..EHZ is not as long as needed, padding
+...2020-11-19 11:19:42,944	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.EORO..SHZ
+2020-11-19 11:19:42,945	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.GOVA..SHZ
+2020-11-19 11:19:42,950	eqcorrscan.utils.pre_processing	DEBUG	I have 86400 data points for AF.EORO..SHZ before processing
+2020-11-19 11:19:42,951	eqcorrscan.utils.pre_processing	DEBUG	I have 86400 data points for AF.GOVA..SHZ before processing
+2020-11-19 11:19:42,952	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+2020-11-19 11:19:42,952	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+2020-11-19 11:19:42,957	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.WHYM..SHZ
+2020-11-19 11:19:42,958	eqcorrscan.utils.pre_processing	DEBUG	I have 86400 data points for AF.WHYM..SHZ before processing
+2020-11-19 11:19:42,959	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+..2020-11-19 11:19:43,065	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.EORO..SHZ
+2020-11-19 11:19:43,066	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.GOVA..SHZ
+2020-11-19 11:19:43,067	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.WHYM..SHZ
+2020-11-19 11:19:43,071	eqcorrscan.utils.pre_processing	DEBUG	I have 86400 data points for AF.EORO..SHZ before processing
+2020-11-19 11:19:43,072	eqcorrscan.utils.pre_processing	DEBUG	I have 86400 data points for AF.GOVA..SHZ before processing
+2020-11-19 11:19:43,072	eqcorrscan.utils.pre_processing	DEBUG	I have 86400 data points for AF.WHYM..SHZ before processing
+2020-11-19 11:19:43,072	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+2020-11-19 11:19:43,072	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+2020-11-19 11:19:43,073	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+.2020-11-19 11:19:43,169	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.EORO..SHZ
+2020-11-19 11:19:43,174	eqcorrscan.utils.pre_processing	DEBUG	I have 86400 data points for AF.EORO..SHZ before processing
+2020-11-19 11:19:43,175	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+2020-11-19 11:19:43,178	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.GOVA..SHZ
+2020-11-19 11:19:43,180	eqcorrscan.utils.pre_processing	DEBUG	I have 86400 data points for AF.GOVA..SHZ before processing
+2020-11-19 11:19:43,180	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+2020-11-19 11:19:43,183	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.WHYM..SHZ
+2020-11-19 11:19:43,184	eqcorrscan.utils.pre_processing	DEBUG	I have 86400 data points for AF.WHYM..SHZ before processing
+2020-11-19 11:19:43,185	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+.2020-11-19 11:19:43,198	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.EORO..SHZ
+2020-11-19 11:19:43,200	eqcorrscan.utils.pre_processing	DEBUG	I have 86400 data points for AF.EORO..SHZ before processing
+2020-11-19 11:19:43,201	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+..2020-11-19 11:19:43,302	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.EORO..SHZ
+2020-11-19 11:19:43,308	eqcorrscan.utils.pre_processing	DEBUG	I have 10801 data points for AF.EORO..SHZ before processing
+2020-11-19 11:19:43,308	eqcorrscan.utils.pre_processing	INFO	Data for AF.EORO..SHZ are not long-enough, will zero pad
+2020-11-19 11:19:43,309	eqcorrscan.utils.pre_processing	DEBUG	I now have 3600 data points after enforcing length
+2020-11-19 11:19:43,309	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+.2020-11-19 11:19:43,316	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.EORO..SHZ
+2020-11-19 11:19:43,318	eqcorrscan.utils.pre_processing	DEBUG	I have 86400 data points for AF.EORO..SHZ before processing
+2020-11-19 11:19:43,319	eqcorrscan.utils.pre_processing	DEBUG	Lowpassing
+.2020-11-19 11:19:43,322	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.EORO..SHZ
+2020-11-19 11:19:43,323	eqcorrscan.utils.pre_processing	DEBUG	I have 86400 data points for AF.EORO..SHZ before processing
+2020-11-19 11:19:43,324	eqcorrscan.utils.pre_processing	DEBUG	Highpassing
+.2020-11-19 11:19:43,326	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.EORO..SHZ
+2020-11-19 11:19:43,328	eqcorrscan.utils.pre_processing	DEBUG	I have 3601 data points for AF.EORO..SHZ before processing
+2020-11-19 11:19:43,328	eqcorrscan.utils.pre_processing	DEBUG	Resampling
+2020-11-19 11:19:43,335	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+.2020-11-19 11:19:43,340	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.EORO..SHZ
+2020-11-19 11:19:43,342	eqcorrscan.utils.pre_processing	DEBUG	I have 3601 data points for AF.EORO..SHZ before processing
+2020-11-19 11:19:43,343	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+.2020-11-19 11:19:43,347	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.EORO..SHZ
+2020-11-19 11:19:43,349	eqcorrscan.utils.pre_processing	DEBUG	I have 3601 data points for AF.EORO..SHZ before processing
+2020-11-19 11:19:43,349	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+.2020-11-19 11:19:43,364	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.GOVA..SHZ
+2020-11-19 11:19:43,364	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.EORO..SHZ
+2020-11-19 11:19:43,366	eqcorrscan.utils.pre_processing	DEBUG	I have 3601 data points for AF.EORO..SHZ before processing
+2020-11-19 11:19:43,366	eqcorrscan.utils.pre_processing	DEBUG	I have 3601 data points for AF.GOVA..SHZ before processing
+2020-11-19 11:19:43,366	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+2020-11-19 11:19:43,366	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+2020-11-19 11:19:43,369	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.WHYM..SHZ
+2020-11-19 11:19:43,369	eqcorrscan.utils.pre_processing	DEBUG	I have 3601 data points for AF.WHYM..SHZ before processing
+2020-11-19 11:19:43,369	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+.2020-11-19 11:19:43,477	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.GOVA..SHZ
+2020-11-19 11:19:43,477	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.WHYM..SHZ
+2020-11-19 11:19:43,477	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.EORO..SHZ
+2020-11-19 11:19:43,478	eqcorrscan.utils.pre_processing	DEBUG	I have 3601 data points for AF.WHYM..SHZ before processing
+2020-11-19 11:19:43,478	eqcorrscan.utils.pre_processing	DEBUG	I have 3601 data points for AF.EORO..SHZ before processing
+2020-11-19 11:19:43,478	eqcorrscan.utils.pre_processing	DEBUG	I have 3601 data points for AF.GOVA..SHZ before processing
+2020-11-19 11:19:43,478	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+2020-11-19 11:19:43,478	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+2020-11-19 11:19:43,478	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+.2020-11-19 11:19:43,583	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.EORO..SHZ
+2020-11-19 11:19:43,585	eqcorrscan.utils.pre_processing	DEBUG	I have 86400 data points for AF.EORO..SHZ before processing
+2020-11-19 11:19:43,586	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+.2020-11-19 11:19:43,590	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.EORO..SHZ
+.2020-11-19 11:19:43,590	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.EORO..SHZ
+2020-11-19 11:19:43,591	eqcorrscan.utils.pre_processing	DEBUG	I have 86400 data points for AF.EORO..SHZ before processing
+2020-11-19 11:19:43,592	eqcorrscan.utils.pre_processing	DEBUG	Bandpassing
+..2020-11-19 11:19:43,595	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.EORO..SHZ
+2020-11-19 11:19:43,596	eqcorrscan.utils.pre_processing	DEBUG	I have 58400 data points for AF.EORO..SHZ before processing
+2020-11-19 11:19:43,596	eqcorrscan.utils.pre_processing	INFO	Data for AF.EORO..SHZ are not long-enough, will zero pad
+2020-11-19 11:19:43,596	eqcorrscan.utils.pre_processing	WARNING	Data for EORO.SHZ is 58399.00 seconds long, which is less than 80 percent of the desired length (86400 seconds), will not pad
+.2020-11-19 11:19:43,597	eqcorrscan.utils.pre_processing	DEBUG	Working on: AF.EORO..SHZ
+/home/felix/repos/obspy/obspy/io/stationxml/core.py:91: UserWarning: The StationXML file has version 1, ObsPy can read versions (1.0, 1.1). Proceed with caution.
+  warnings.warn("The StationXML file has version %s, ObsPy can "
+Matched-filter GPU is not compiled! Should be here: /home/felix/repos/fast_matched_filter/fast_matched_filter/lib/matched_filter_GPU.so
+2019-08-12T10:35:27.752199Z
+StationInfo(network='NZ', station='MSZ', location='10')
+StationInfo(network='NZ', station='WKZ', location='10')
+StationInfo(network='NZ', station='EAZ', location='10')
+StationInfo(network='NZ', station='JCZ', location='10')
+StationInfo(network='NZ', station='FOZ', location='11')
+2019-08-12T10:38:48.442843Z
+StationInfo(network='NZ', station='MSZ', location='10')
+StationInfo(network='NZ', station='WKZ', location='10')
+StationInfo(network='NZ', station='EAZ', location='10')
+StationInfo(network='NZ', station='JCZ', location='10')
+StationInfo(network='NZ', station='FOZ', location='11')
+2019-08-12T10:39:48.402152Z
+StationInfo(network='NZ', station='MSZ', location='10')
+StationInfo(network='NZ', station='WKZ', location='10')
+StationInfo(network='NZ', station='EAZ', location='10')
+StationInfo(network='NZ', station='JCZ', location='10')
+StationInfo(network='NZ', station='FOZ', location='11')
+2019-08-12T10:40:32.038857Z
+StationInfo(network='NZ', station='MSZ', location='10')
+StationInfo(network='NZ', station='WKZ', location='10')
+StationInfo(network='NZ', station='EAZ', location='10')
+StationInfo(network='NZ', station='JCZ', location='10')
+StationInfo(network='NZ', station='FOZ', location='11')
+2019-08-12T10:43:25.727039Z
+StationInfo(network='NZ', station='MSZ', location='10')
+StationInfo(network='NZ', station='WKZ', location='10')
+StationInfo(network='NZ', station='EAZ', location='10')
+StationInfo(network='NZ', station='JCZ', location='10')
+StationInfo(network='NZ', station='FOZ', location='11')
+2019-08-12T10:44:41.303914Z
+StationInfo(network='NZ', station='MSZ', location='10')
+StationInfo(network='NZ', station='WKZ', location='10')
+StationInfo(network='NZ', station='EAZ', location='10')
+StationInfo(network='NZ', station='JCZ', location='10')
+StationInfo(network='NZ', station='FOZ', location='11')
+2019-08-12T10:48:08.877687Z
+StationInfo(network='NZ', station='MSZ', location='10')
+StationInfo(network='NZ', station='WKZ', location='10')
+StationInfo(network='NZ', station='EAZ', location='10')
+StationInfo(network='NZ', station='JCZ', location='10')
+StationInfo(network='NZ', station='FOZ', location='11')
+2019-08-12T10:51:18.906963Z
+StationInfo(network='NZ', station='MSZ', location='10')
+StationInfo(network='NZ', station='WKZ', location='10')
+StationInfo(network='NZ', station='EAZ', location='10')
+StationInfo(network='NZ', station='JCZ', location='10')
+StationInfo(network='NZ', station='FOZ', location='11')
+2019-08-12T10:53:13.048748Z
+StationInfo(network='NZ', station='MSZ', location='10')
+StationInfo(network='NZ', station='WKZ', location='10')
+StationInfo(network='NZ', station='EAZ', location='10')
+StationInfo(network='NZ', station='JCZ', location='10')
+StationInfo(network='NZ', station='FOZ', location='11')
+2019-08-12T10:55:34.962640Z
+StationInfo(network='NZ', station='MSZ', location='10')
+StationInfo(network='NZ', station='WKZ', location='10')
+StationInfo(network='NZ', station='EAZ', location='10')
+StationInfo(network='NZ', station='JCZ', location='10')
+StationInfo(network='NZ', station='FOZ', location='11')
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+/home/felix/repos/EQcorrscan/eqcorrscan/core/lag_calc.py:89: DeprecationWarning: The truth value of an empty array is ambiguous. Returning False, but in future this will result in an error. Use `array.size > 0` to check that an array is not empty.
+  if residual > 0.1:
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+/home/felix/repos/EQcorrscan/eqcorrscan/core/lag_calc.py:89: DeprecationWarning: The truth value of an empty array is ambiguous. Returning False, but in future this will result in an error. Use `array.size > 0` to check that an array is not empty.
+  if residual > 0.1:
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+/home/felix/repos/EQcorrscan/eqcorrscan/core/lag_calc.py:89: DeprecationWarning: The truth value of an empty array is ambiguous. Returning False, but in future this will result in an error. Use `array.size > 0` to check that an array is not empty.
+  if residual > 0.1:
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+/home/felix/repos/EQcorrscan/eqcorrscan/core/lag_calc.py:89: DeprecationWarning: The truth value of an empty array is ambiguous. Returning False, but in future this will result in an error. Use `array.size > 0` to check that an array is not empty.
+  if residual > 0.1:
+/home/felix/repos/EQcorrscan/eqcorrscan/core/lag_calc.py:89: DeprecationWarning: The truth value of an empty array is ambiguous. Returning False, but in future this will result in an error. Use `array.size > 0` to check that an array is not empty.
+  if residual > 0.1:
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 1, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 1, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 2, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 2, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 1, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 1, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 2, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 2, returning maximum in data
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 2, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+/home/felix/repos/EQcorrscan/eqcorrscan/core/lag_calc.py:89: DeprecationWarning: The truth value of an empty array is ambiguous. Returning False, but in future this will result in an error. Use `array.size > 0` to check that an array is not empty.
+  if residual > 0.1:
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 2, returning maximum in data
+/home/felix/repos/EQcorrscan/eqcorrscan/core/lag_calc.py:89: DeprecationWarning: The truth value of an empty array is ambiguous. Returning False, but in future this will result in an error. Use `array.size > 0` to check that an array is not empty.
+  if residual > 0.1:
+Fewer than 3 samples selected for fit to cross correlation: 1, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 1, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 2, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 1, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 1, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 1, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 2, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 1, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 1, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 1, returning maximum in data
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+/home/felix/repos/EQcorrscan/eqcorrscan/core/lag_calc.py:89: DeprecationWarning: The truth value of an empty array is ambiguous. Returning False, but in future this will result in an error. Use `array.size > 0` to check that an array is not empty.
+  if residual > 0.1:
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 1, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+Interpolation did not give an accurate result, returning maximum in data
+/home/felix/repos/EQcorrscan/eqcorrscan/core/lag_calc.py:89: DeprecationWarning: The truth value of an empty array is ambiguous. Returning False, but in future this will result in an error. Use `array.size > 0` to check that an array is not empty.
+  if residual > 0.1:
+Fewer than 3 samples selected for fit to cross correlation: 1, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 2, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 1, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/core/lag_calc.py:89: DeprecationWarning: The truth value of an empty array is ambiguous. Returning False, but in future this will result in an error. Use `array.size > 0` to check that an array is not empty.
+  if residual > 0.1:
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 2, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 1, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Fewer than 3 samples selected for fit to cross correlation: 1, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+Interpolation did not give an accurate result, returning maximum in data
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+.Insufficient data for NZ.FOZ.11.HHZ, discarding
+Insufficient data for NZ.WKZ.10.HHZ, discarding
+Insufficient data for NZ.MSZ.10.HHE, discarding
+Insufficient data for NZ.MSZ.10.HHZ, discarding
+Insufficient data for NZ.JCZ.10.HHZ, discarding
+Insufficient data for NZ.MSZ.10.HHE, discarding
+Insufficient data for NZ.FOZ.11.HHN, discarding
+Insufficient data for NZ.JCZ.10.HHZ, discarding
+Insufficient data for NZ.MSZ.10.HHE, discarding
+Insufficient data for NZ.MSZ.10.HHE, discarding
+Insufficient data for NZ.WKZ.10.HHN, discarding
+Insufficient data for NZ.EAZ.10.HHZ, discarding
+Insufficient data for NZ.MSZ.10.HHE, discarding
+Insufficient data for NZ.WKZ.10.HHZ, discarding
+Insufficient data for NZ.MSZ.10.HHZ, discarding
+Insufficient data for NZ.EAZ.10.HHZ, discarding
+Insufficient data for NZ.MSZ.10.HHE, discarding
+Insufficient data for NZ.JCZ.10.HHN, discarding
+Insufficient data for NZ.JCZ.10.HHN, discarding
+Insufficient data for NZ.MSZ.10.HHE, discarding
+Insufficient data for NZ.MSZ.10.HHE, discarding
+Insufficient data for NZ.MSZ.10.HHE, discarding
+Insufficient data for NZ.WKZ.10.HHZ, discarding
+Insufficient data for NZ.MSZ.10.HHZ, discarding
+Insufficient data for NZ.MSZ.10.HHE, discarding
+Insufficient data for NZ.EAZ.10.HHZ, discarding
+Insufficient data for NZ.JCZ.10.HHZ, discarding
+Insufficient data for NZ.MSZ.10.HHE, discarding
+Insufficient data for NZ.MSZ.10.HHE, discarding
+Insufficient data for NZ.EAZ.10.HHZ, discarding
+Insufficient data for NZ.MSZ.10.HHE, discarding
+Insufficient data for NZ.FOZ.11.HHN, discarding
+Insufficient data for NZ.MSZ.10.HHE, discarding
+Insufficient data for NZ.MSZ.10.HHE, discarding
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+Insufficient data for NZ.WKZ.10.HHZ, discarding
+Insufficient data for NZ.MSZ.10.HHZ, discarding
+Insufficient data for NZ.EAZ.10.HHZ, discarding
+Insufficient data for NZ.MSZ.10.HHE, discarding
+Insufficient data for NZ.JCZ.10.HHN, discarding
+Insufficient data for NZ.MSZ.10.HHE, discarding
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+........../home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+./home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+/home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+./home/felix/repos/EQcorrscan/eqcorrscan/utils/correlate.py:762: DeprecationWarning: `np.int` is a deprecated alias for the builtin `int`. To silence this warning, use `int` by itself. Doing this will not modify any behavior and is safe. When replacing `np.int`, you may wish to use e.g. `np.int64` or `np.int32` to specify the precision. If you wish to review your current use, check the release note link for additional information.
+Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+  no_chans = np.sum(np.array(tr_chans).astype(np.int), axis=0)
+........
+----------------------------------------------------------------------
+Ran 21 tests in 13.869s
+
+OK
