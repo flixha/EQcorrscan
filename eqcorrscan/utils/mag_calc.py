@@ -581,11 +581,7 @@ def relative_magnitude(st1, st2, event1, event2, noise_window=(-20, -1),
     .. math::
 
         \\Delta m = \\log{\\frac{std(tr2)}{std(tr1)}} + \\log{
-<<<<<<< HEAD
             \\frac{(1+\\frac{1}{snr_x^2})}{1+\\frac{1}{snr_y^2}}\\times CC}
-=======
-            \\frac{(1+\\frac{1/snr_x^2})}{1+\\frac{1/snr_y^2}}\\times CC}
->>>>>>> 97c61ac7 (stickler)
 
     If you decide to use this function you should definitely read the paper
     to understand what you can use this for and cite the paper!
