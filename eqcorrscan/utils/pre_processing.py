@@ -12,8 +12,10 @@ the data using obspy modules (which also rely on scipy and numpy).
 import numpy as np
 import logging
 import datetime as dt
+from timeit import default_timer
 
 from collections import Counter
+from joblib import Parallel, delayed
 from multiprocessing import Pool, cpu_count
 
 from obspy import Stream, Trace, UTCDateTime
@@ -203,6 +205,7 @@ def shortproc(st, lowcut, highcut, filt_order, samp_rate, parallel=False,
         if len(tr.data) == 0:
             st.remove(tr)
             Logger.warning('No data for {0} after trim'.format(tr.id))
+    outtic = default_timer()
     if parallel:
         if not num_cores:
             num_cores = cpu_count()
@@ -239,6 +242,8 @@ def shortproc(st, lowcut, highcut, filt_order, samp_rate, parallel=False,
     if tracein:
         st.merge()
         return st[0]
+    outtoc = default_timer()
+    Logger.info('Pre-processing took: {0:.4f}s'.format(outtoc - outtic))
     return st
 
 
@@ -370,29 +375,42 @@ def dayproc(st, lowcut, highcut, filt_order, samp_rate, starttime,
         if not len(set(startdates)) == 1:
             raise NotImplementedError('Traces start on different days')
         starttime = UTCDateTime(startdates[0])
+    outtic = default_timer()
     if parallel:
         if not num_cores:
             num_cores = cpu_count()
         if num_cores > len(st):
             num_cores = len(st)
         Logger.info('Starting pre-processing Pool') #FH
-        pool = Pool(processes=num_cores)
-        Logger.info('Started pre-processing Pool') #FH
-        results = [pool.apply_async(process, (tr,), {
-            'lowcut': lowcut, 'highcut': highcut, 'filt_order': filt_order,
-            'samp_rate': samp_rate, 'starttime': starttime, 'clip': True,
-            'ignore_length': ignore_length, 'length': 86400,
-            'seisan_chan_names': seisan_chan_names, 'fill_gaps': fill_gaps,
-            'ignore_bad_data': ignore_bad_data, 'fft_threads': fft_threads})
-                   for tr in st]
-        pool.close()
-        try:
-            stream_list = [p.get() for p in results]
-        except KeyboardInterrupt as e:  # pragma: no cover
-            pool.terminate()
-            raise e
-        pool.join()
-        st = Stream(stream_list)
+        # pool = Pool(processes=num_cores)
+        # Logger.info('Started pre-processing Pool') #FH
+        # results = [pool.apply_async(process, (tr,), {
+        #     'lowcut': lowcut, 'highcut': highcut, 'filt_order': filt_order,
+        #     'samp_rate': samp_rate, 'starttime': starttime, 'clip': True,
+        #     'ignore_length': ignore_length, 'length': 86400,
+        #     'seisan_chan_names': seisan_chan_names, 'fill_gaps': fill_gaps,
+        #     'ignore_bad_data': ignore_bad_data, 'fft_threads': fft_threads})
+        #            for tr in st]
+        # pool.close()
+        # try:
+        #     stream_list = [p.get() for p in results]
+        # except KeyboardInterrupt as e:  # pragma: no cover
+        #     pool.terminate()
+        #     raise e
+        # pool.join()
+        # st = Stream(stream_list)
+
+        results = Parallel(n_jobs=num_cores)(
+            delayed(process)(
+                tr, lowcut=lowcut, highcut=highcut, filt_order=filt_order,
+                samp_rate=samp_rate, starttime=starttime, clip=True,
+                ignore_length=ignore_length, length=86400,
+                seisan_chan_names=seisan_chan_names, fill_gaps=fill_gaps,
+                ignore_bad_data=ignore_bad_data, fft_threads=fft_threads)
+            for tr in st)
+        st = Stream(results)
+        Logger.info('Pre-processing done')
+
     else:
         for i, tr in enumerate(st):
             st[i] = process(
@@ -407,6 +425,8 @@ def dayproc(st, lowcut, highcut, filt_order, samp_rate, starttime,
     if tracein:
         st.merge()
         return st[0]
+    outtoc = default_timer()
+    Logger.info('Pre-processing took: {0:.4f}s'.format(outtoc - outtic))
     return st
 
 
@@ -483,6 +503,9 @@ def process(tr, lowcut, highcut, filt_order, samp_rate,
             starttime = UTCDateTime(starttime)
 
     Logger.debug('Working on: {0}'.format(tr.id))
+
+    # Copy trace so that function can be run parallel with shared memory
+    tr = tr.copy()
     # Check if the trace is gappy and pad if it is.
     gappy = False
     if isinstance(tr.data, np.ma.MaskedArray):
