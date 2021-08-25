@@ -409,7 +409,6 @@ def dayproc(st, lowcut, highcut, filt_order, samp_rate, starttime,
                 ignore_bad_data=ignore_bad_data, fft_threads=fft_threads)
             for tr in st)
         st = Stream(results)
-        Logger.info('Pre-processing done')
 
     else:
         for i, tr in enumerate(st):
