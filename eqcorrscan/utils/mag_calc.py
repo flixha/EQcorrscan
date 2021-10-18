@@ -898,7 +898,7 @@ def amp_pick_event(event, st, inventory, chans=('Z',), var_wintype=True,
                 trim_start = s_time - pre_pick
                 trim_end = s_time + winlen
             tr = tr.trim(trim_start, trim_end)
-            if len(tr.data) <= 10:
+            if len(tr.data) <= 10 or np.isnan(tr.data):
                 Logger.warning(f'Insufficient data for {sta}')
                 continue
             # Get the amplitude
