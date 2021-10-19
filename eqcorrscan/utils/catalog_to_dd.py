@@ -168,7 +168,7 @@ def _prepare_stream(stream, event, extract_len, pre_pick, seed_pick_ids=None):
     seed_pick_ids = seed_pick_ids or {
         SeedPickID(pick.waveform_id.get_seed_string(), pick.phase_hint[0])
         for pick in event.picks if pick.phase_hint.startswith(("P", "S"))}
-    stream_sliced = defaultdict(lambda: Stream())
+    stream_sliced = defaultdict(Stream)
     for seed_pick_id in seed_pick_ids:
         pick = [pick for pick in event.picks
                 if pick.waveform_id.get_seed_string() == seed_pick_id.seed_id
@@ -255,12 +255,23 @@ def _compute_dt_correlations(catalog, master, min_link, event_id_mapper,
             f"Missing streams for {event_ids.difference(_stream_event_ids)}")
         # Just use the event ids that we actually have streams for!
         event_ids = event_ids.intersection(_stream_event_ids)
-    matched_streams = {
-        event_id: _prepare_stream(
-            stream=stream_dict[event_id], event=event_dict[event_id],
-            extract_len=matched_length, pre_pick=matched_pre_pick,
-            seed_pick_ids=master_seed_ids)
-        for event_id in event_ids}
+    if max_workers > 1:
+        with pool_boy(Pool, len(event_ids), cores=max_workers) as pool:
+            results = [pool.apply_async(
+                _prepare_stream,
+                args=(stream_dict[event_id], event_dict[event_id],
+                      matched_length, matched_pre_pick),
+                kwds=dict(seed_pick_ids=master_seed_ids))
+                        for event_id in event_ids]
+        matched_streams = {id_res[0]: id_res[1].get()
+                           for id_res in zip(event_ids, results)}
+    else:
+        matched_streams = {
+            event_id: _prepare_stream(
+                stream=stream_dict[event_id], event=event_dict[event_id],
+                extract_len=matched_length, pre_pick=matched_pre_pick,
+                seed_pick_ids=master_seed_ids)
+            for event_id in event_ids}
 
     sampling_rates = {tr.stats.sampling_rate for st in master_stream.values()
                       for tr in st}
@@ -499,10 +510,23 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
         sub_catalogs = ([ev for i, ev in enumerate(sparse_catalog)
                          if master_filter[i]]
                         for master_filter in distance_filter)
-        differential_times = {
-            master.resource_id: _compute_dt(
-                sub_catalog, master, **additional_args)
-            for master, sub_catalog in zip(sparse_catalog, sub_catalogs)}
+        max_workers = max_workers or cpu_count()
+        if max_workers > 1:
+            with pool_boy(
+                    Pool, len(sparse_catalog), cores=max_workers) as pool:
+                results = [pool.apply_async(
+                    _compute_dt,
+                    args=(sub_catalog, master), kwds=additional_args)
+                           for master, sub_catalog in zip(
+                               sparse_catalog, sub_catalogs)]
+                differential_times = {
+                    master.resource_id: result.get()
+                    for master, result in zip(sparse_catalog, results)}
+        else:
+            differential_times = {
+                master.resource_id: _compute_dt(
+                    sub_catalog, master, **additional_args)
+                for master, sub_catalog in zip(sparse_catalog, sub_catalogs)}
 
     # Remove Nones
     for key, value in differential_times.items():
@@ -512,7 +536,8 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
 
 # dt.ct functions
 
-def write_catalog(catalog, event_id_mapper=None, max_sep=8, min_link=8):
+def write_catalog(catalog, event_id_mapper=None, max_sep=8, min_link=8,
+                  max_workers=None):
     """
     Generate a dt.ct file for hypoDD for a series of events.
 
@@ -531,12 +556,16 @@ def write_catalog(catalog, event_id_mapper=None, max_sep=8, min_link=8):
         Minimum links for an event to be paired, e.g. minimum number of picks
         from the same station and channel (and phase) that are shared between
         two events for them to be paired.
+    :type max_workers: int
+    :param max_workers:
+        Maximum number of workers for parallel processing. If None then all
+        threads will be used.
 
     :returns: event_id_mapper
     """
     differential_times, event_id_mapper = compute_differential_times(
         catalog=catalog, correlation=False, event_id_mapper=event_id_mapper,
-        max_sep=max_sep, min_link=min_link)
+        max_sep=max_sep, min_link=min_link, max_workers=max_workers)
     with open("dt.ct", "w") as f:
         for master_id, linked_events in differential_times.items():
             for linked_event in linked_events:
@@ -635,10 +664,11 @@ def write_correlations(catalog, stream_dict, extract_len, pre_pick,
         min_cc = cc_thresh
         Logger.warning("cc_thresh is depreciated, use min_cc instead")
     max_workers = max_workers or cpu_count()
+    processed_stream_dict = stream_dict
     # Process the streams
-    processed_stream_dict = dict()
-    if parallel_process:
-        if not (lowcut is None and highcut is None):
+    if not (lowcut is None and highcut is None):
+        processed_stream_dict = dict()
+        if parallel_process:
             with pool_boy(Pool, len(stream_dict), cores=max_workers) as pool:
                 results = [pool.apply_async(
                     _meta_filter_stream,
@@ -646,11 +676,11 @@ def write_correlations(catalog, stream_dict, extract_len, pre_pick,
                            for key in stream_dict.keys()]
             for result in results:
                 processed_stream_dict.update(result.get())
-    else:
-        for key in stream_dict.keys():
-            processed_stream_dict.update(_meta_filter_stream(
-                stream_dict=stream_dict, lowcut=lowcut, highcut=highcut,
-                event_id=key))
+        else:
+            for key in stream_dict.keys():
+                processed_stream_dict.update(_meta_filter_stream(
+                    stream_dict=stream_dict, lowcut=lowcut, highcut=highcut,
+                    event_id=key))
     correlation_times, event_id_mapper = compute_differential_times(
         catalog=catalog, correlation=True, event_id_mapper=event_id_mapper,
         max_sep=max_sep, min_link=min_link, max_workers=max_workers,

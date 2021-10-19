@@ -267,7 +267,14 @@ class TestCatalogMethods(unittest.TestCase):
     def test_write_catalog(self):
         # Contents checked elsewhere
         write_catalog(catalog=self.catalog, event_id_mapper=None,
-                      max_sep=8., min_link=8)
+                      max_sep=8., min_link=8, max_workers=1)
+        self.assertTrue(os.path.isfile("dt.ct"))
+        os.remove("dt.ct")
+
+    def test_write_catalog_parallel(self):
+        # Contents checked elsewhere
+        write_catalog(catalog=self.catalog, event_id_mapper=None,
+                      max_sep=8., min_link=8, max_workers=2)
         self.assertTrue(os.path.isfile("dt.ct"))
         os.remove("dt.ct")
 
@@ -285,7 +292,7 @@ class TestCatalogMethods(unittest.TestCase):
         self.assertTrue(os.path.isfile("dt.cc"))
         os.remove('dt.cc')
 
-    def test_write_correlations_parallel(self):
+    def test_write_correlations_parallel_process(self):
         # Contents checked elsewhere
         shift_len = 2
         short_cat = self.catalog[0:10]
