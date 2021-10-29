@@ -13,6 +13,10 @@
  - Fixed bug on execution of parallel execution.
  - Added parallel-options for catalog-dt measurements and for stream-preparation
    before cross correlation-dt measurements.
+* utils.mag_calc.relative_magnitude
+ - fixed bug where S-picks / traces were used for relative-magnitude calculation
+   against user's choice.
+>>>>>>> fix_relative_mag_s_picks
 
 ## 0.4.3
 * core.match_filter
