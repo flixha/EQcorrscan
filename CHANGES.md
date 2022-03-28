@@ -35,6 +35,9 @@
    without matching traces which can be compared indirectly via a third event)
  - Allows to set clustering method, metric, and sort_order from
    scipy.cluster.hierarchy.linkage.
+* tribe, template, template_gen, archive_read, clustering: remove option to read
+  from seishub (deprecated in obspy).
+>>>>>>> remove_seishub
 
 ## 0.4.3
 * core.match_filter
