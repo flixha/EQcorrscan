@@ -308,8 +308,9 @@ def xcorr_pick_family(family, stream, shift_len=0.2, min_cc=0.4,
         checksum, cccsum, used_chans = 0.0, 0.0, 0
         event = Event()
         if min_cc_from_mean_cc_factor is not None:
-            cc_thresh = min(detection.detect_val / detection.no_chans
-                            * min_cc_from_mean_cc_factor, min_cc)
+            cc_thresh = min(abs(detection.detect_val / detection.no_chans
+                                * min_cc_from_mean_cc_factor),
+                            min_cc)
             Logger.info('Setting minimum cc-threshold for detection %s to %s',
                         detection.id, str(cc_thresh))
         else:
@@ -415,6 +416,17 @@ def _prepare_data(family, detect_data, shift_len):
     """
     lengths = {tr.stats.npts * tr.stats.delta for tr in family.template.st}
     assert len(lengths) == 1, "Template contains channels of different length"
+    # Stream needs to start early enough to take prepick and shift_len into
+    # account
+    prepick = 0
+    if family.template.event and family.template.event.picks:
+        prepick = np.max(
+            [pk.time -
+             family.template.st.select(id=pk.waveform_id.id)[0].stats.starttime
+             for pk in family.template.event.picks
+             if len(family.template.st.select(id=pk.waveform_id.id)) == 1])
+    stream_prepick = prepick + shift_len
+    # stream_prepick = shift_len
     length = lengths.pop() + (2 * shift_len)
     # Enforce length be an integer number of samples
     length_samples = length * family.template.samp_rate
@@ -422,9 +434,8 @@ def _prepare_data(family, detect_data, shift_len):
         length = round(length_samples) / family.template.samp_rate
         Logger.info("Setting length to {0}s to give an integer number of "
                     "samples".format(length))
-    prepick = shift_len
     detect_streams_dict = family.extract_streams(
-        stream=detect_data, length=length, prepick=prepick)
+        stream=detect_data, length=length, prepick=stream_prepick)
     for key, detect_stream in detect_streams_dict.items():
         # Split to remove trailing or leading masks
         for i in range(len(detect_stream) - 1, -1, -1):
