@@ -220,8 +220,8 @@ def _concatenate_and_correlate(streams, template, cores):
 
 
 def xcorr_pick_family(family, stream, shift_len=0.2, min_cc=0.4,
-                      min_cc_from_mean_cc_factor=None,
-                      horizontal_chans=['E', 'N', '1', '2'],
+                      min_cc_from_mean_cc_factor=None, all_vert=False,
+                      all_horiz=False, horizontal_chans=['E', 'N', '1', '2'],
                       vertical_chans=['Z'], cores=1, interpolate=False,
                       plot=False, plotdir=None, export_cc=False, cc_dir=None,
                       **kwargs):
@@ -279,7 +279,9 @@ def xcorr_pick_family(family, stream, shift_len=0.2, min_cc=0.4,
     picked_dict = {}
     delta = family.template.st[0].stats.delta
     detect_streams_dict = _prepare_data(
-        family=family, detect_data=stream, shift_len=shift_len)
+        family=family, detect_data=stream, shift_len=shift_len,
+        all_vert=all_vert, all_horiz=all_horiz, vertical_chans=vertical_chans,
+        horizontal_chans=horizontal_chans)
     detection_ids = list(detect_streams_dict.keys())
     detect_streams = [detect_streams_dict[detection_id]
                       for detection_id in detection_ids]
@@ -396,7 +398,9 @@ def xcorr_pick_family(family, stream, shift_len=0.2, min_cc=0.4,
     return picked_dict
 
 
-def _prepare_data(family, detect_data, shift_len):
+def _prepare_data(family, detect_data, shift_len, all_vert=False,
+                  all_horiz=False, vertical_chans=['Z'],
+                  horizontal_chans=['E', 'N', '1', '2']):
     """
     Prepare data for lag_calc - reduce memory here.
 
@@ -416,15 +420,6 @@ def _prepare_data(family, detect_data, shift_len):
     assert len(lengths) == 1, "Template contains channels of different length"
     # Stream needs to start early enough to take prepick and shift_len into
     # account
-    prepick = 0
-    if family.template.event and family.template.event.picks:
-        prepick = np.max(
-            [pk.time -
-             family.template.st.select(id=pk.waveform_id.id)[0].stats.starttime
-             for pk in family.template.event.picks
-             if len(family.template.st.select(id=pk.waveform_id.id)) == 1])
-    stream_prepick = prepick + shift_len
-    # stream_prepick = shift_len
     length = lengths.pop() + (2 * shift_len)
     # Enforce length be an integer number of samples
     length_samples = length * family.template.samp_rate
@@ -434,7 +429,9 @@ def _prepare_data(family, detect_data, shift_len):
                     "samples".format(length))
     prepick = shift_len + family.template.prepick
     detect_streams_dict = family.extract_streams(
-        stream=detect_data, length=length, prepick=stream_prepick)
+        stream=detect_data, length=length, prepick=prepick,
+        all_vert=all_vert, all_horiz=all_horiz, vertical_chans=vertical_chans,
+        horizontal_chans=horizontal_chans)
     for key, detect_stream in detect_streams_dict.items():
         # Split to remove trailing or leading masks
         for i in range(len(detect_stream) - 1, -1, -1):
@@ -462,6 +459,7 @@ def _prepare_data(family, detect_data, shift_len):
 
 def lag_calc(detections, detect_data, template_names, templates,
              shift_len=0.2, min_cc=0.4, min_cc_from_mean_cc_factor=None,
+             all_vert=False, all_horiz=False,
              horizontal_chans=['E', 'N', '1', '2'],
              vertical_chans=['Z'], cores=1, interpolate=False,
              plot=False, plotdir=None, export_cc=False, cc_dir=None, **kwargs):
@@ -608,6 +606,7 @@ def lag_calc(detections, detect_data, template_names, templates,
             template_dict = xcorr_pick_family(
                 family=family, stream=detect_data, min_cc=min_cc,
                 min_cc_from_mean_cc_factor=min_cc_from_mean_cc_factor,
+                all_vert=all_vert, all_horiz=all_horiz,
                 horizontal_chans=horizontal_chans,
                 vertical_chans=vertical_chans, interpolate=interpolate,
                 cores=cores, shift_len=shift_len, plot=plot, plotdir=plotdir,
