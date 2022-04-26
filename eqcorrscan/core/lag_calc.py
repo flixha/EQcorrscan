@@ -437,7 +437,7 @@ def _prepare_data(family, detect_data, shift_len, all_vert=False,
         Logger.info("Setting length to {0}s to give an integer number of "
                     "samples".format(length))
     detect_streams_dict = family.extract_streams(
-        stream=detect_data, length=length, prepick=stream_prepick
+        stream=detect_data, length=length, prepick=stream_prepick,
         all_vert=all_vert, all_horiz=all_horiz, vertical_chans=vertical_chans,
         horizontal_chans=horizontal_chans)
     for key, detect_stream in detect_streams_dict.items():
