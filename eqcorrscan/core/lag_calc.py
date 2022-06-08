@@ -224,7 +224,7 @@ def xcorr_pick_family(family, stream, shift_len=0.2, min_cc=0.4,
                       all_horiz=False, horizontal_chans=['E', 'N', '1', '2'],
                       vertical_chans=['Z'], cores=1, interpolate=False,
                       plot=False, plotdir=None, export_cc=False, cc_dir=None,
-                      **kwargs):
+                      max_detect_val_deviation=0.3, **kwargs):
     """
     Compute cross-correlation picks for detections in a family.
 
@@ -273,6 +273,11 @@ def xcorr_pick_family(family, stream, shift_len=0.2, min_cc=0.4,
     :type cc_dir: str
     :param cc_dir:
         Path to saving folder, NumPy files will be output here.
+    :type max_detect_val_deviation: float
+    :param max_detect_val_deviation:
+        Maximum ratio by which the detection value from lag_calc may deviate
+        from the detection value from match_filter for a picked event to be
+        returned. Defaults to 0.3.
 
     :return: Dictionary of picked events keyed by detection id.
     """
@@ -356,7 +361,8 @@ def xcorr_pick_family(family, stream, shift_len=0.2, min_cc=0.4,
             text="Detected using template: {0}".format(family.template.name)))
         if used_chans == detection.no_chans:  # pragma: no cover
             if detection.detect_val is not None and\
-               checksum - detection.detect_val < -(0.3 * detection.detect_val):
+               checksum - detection.detect_val < -(max_detect_val_deviation
+                                                   * detection.detect_val):
                 msg = ('lag-calc has decreased cccsum from %f to %f - '
                        % (detection.detect_val, checksum))
                 Logger.error(msg)
