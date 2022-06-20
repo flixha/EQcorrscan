@@ -261,7 +261,7 @@ class Tribe(object):
         return copy.deepcopy(self)
 
     def write(self, filename, compress=True, catalog_format="QUAKEML",
-              max_events_per_file=1000):
+              max_events_per_file=1000,  **kwargs):
         """
         Write the tribe to a file using tar archive formatting.
 
@@ -320,7 +320,7 @@ class Tribe(object):
         for template in self.templates:
             template.st.write(
                 os.path.join(dirname, '{0}.ms'.format(template.name)),
-                format='MSEED')
+                format='MSEED', **kwargs)
         if compress:
             if not filename.endswith(".tgz"):
                 Logger.info("Appending '.tgz' to filename.")
@@ -454,6 +454,7 @@ class Tribe(object):
             if not template.st:
                 Logger.error('No waveform for template: ' + template.name)
                 continue
+            template = template._check_trace_length()
         self.templates.extend([t for t in templates if t.st])
         return
 
