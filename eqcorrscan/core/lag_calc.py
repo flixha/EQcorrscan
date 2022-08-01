@@ -220,9 +220,10 @@ def _concatenate_and_correlate(streams, template, cores):
 
 
 def xcorr_pick_family(family, stream, shift_len=0.2, min_cc=0.4,
-                      min_cc_from_mean_cc_factor=None, all_vert=False,
-                      all_horiz=False, horizontal_chans=['E', 'N', '1', '2'],
-                      vertical_chans=['Z'], cores=1, interpolate=False,
+                      min_cc_from_mean_cc_factor=None,
+                      all_vert=False, all_horiz=False, vertical_chans=['Z'],
+                      horizontal_chans=['E', 'N', '1', '2', '3'],
+                      cores=1, interpolate=False,
                       plot=False, plotdir=None, export_cc=False, cc_dir=None,
                       max_detect_val_deviation=0.3, **kwargs):
     """
@@ -406,7 +407,7 @@ def xcorr_pick_family(family, stream, shift_len=0.2, min_cc=0.4,
 
 def _prepare_data(family, detect_data, shift_len, all_vert=False,
                   all_horiz=False, vertical_chans=['Z'],
-                  horizontal_chans=['E', 'N', '1', '2']):
+                  horizontal_chans=['E', 'N', '1', '2', '3']):
     """
     Prepare data for lag_calc - reduce memory here.
 
@@ -442,8 +443,9 @@ def _prepare_data(family, detect_data, shift_len, all_vert=False,
         length = round(length_samples) / family.template.samp_rate
         Logger.info("Setting length to {0}s to give an integer number of "
                     "samples".format(length))
+    prepick = shift_len + family.template.prepick
     detect_streams_dict = family.extract_streams(
-        stream=detect_data, length=length, prepick=stream_prepick,
+        stream=detect_data, length=length, prepick=prepick,
         all_vert=all_vert, all_horiz=all_horiz, vertical_chans=vertical_chans,
         horizontal_chans=horizontal_chans)
     for key, detect_stream in detect_streams_dict.items():
@@ -614,7 +616,7 @@ def lag_calc(detections, detect_data, template_names, templates,
             detections=template_detections,
             template=Template(
                 name=template_name, st=template,
-                samp_rate=template[0].stats.sampling_rate))
+                samp_rate=template[0].stats.sampling_rate, prepick=0.0))
         # Make a sparse template
         if len(template_detections) > 0:
             template_dict = xcorr_pick_family(
