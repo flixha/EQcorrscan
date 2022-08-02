@@ -22,7 +22,7 @@ import logging
 import multiprocessing
 
 import numpy as np
-from obspy import Catalog, Stream, read
+from obspy import Catalog, Stream, UTCDateTime, read
 from obspy.core.event import Comment, CreationInfo
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
@@ -306,51 +306,43 @@ class Tribe(object):
                     if comment.text and comment.text.startswith(
                             "eqcorrscan_template_"):
                         comment.text = "eqcorrscan_template_{0}".format(t.name)
-                # TODO: add extra info for each trace to event object, write
+               # TODO: add extra info for each trace to event object, write
                 #       into quakeml, and read back from quakeml into trace
                 #       stats
-                trace_ids = [tr.id for tr in t]
-                trace_lengths_npts = [tr.extra.length_npts.value for tr in t]
-                trace_starttimes = [tr.extra.starttime.value for tr in t]
-                trace_endtimes = [tr.extra.endtime.value for tr in t]
-                trace_peak_snrs = [tr.extra.peak_snr.value for tr in t]
-                trace_rms_snrs = [tr.extra.rms_snr.value for tr in t]
-                trace_weights = [tr.extra.weight.value for tr in t]
-                t.event.extra = {
-                    'trace_ids': {
-                    'value': trace_ids,
-                    'namespace':
-                        'EQC'}}
-                t.event.extra = {
-                    'trace_lengths_npts': {
-                    'value': trace_lengths_npts,
-                    'namespace':
-                        'EQC'}}
-                t.event.extra = {
-                    'trace_starttimes': {
-                    'value': trace_starttimes,
-                    'namespace':
-                        'EQC'}}
-                t.event.extra = {
-                    'trace_endtimes': {
-                    'value': trace_endtimes,
-                    'namespace':
-                        'EQC'}}
-                t.event.extra = {
-                    'trace_peak_snrs': {
-                    'value': trace_peak_snrs,
-                    'namespace':
-                        'EQC'}}
-                t.event.extra = {
-                    'trace_rms_snrs': {
-                    'value': trace_rms_snrs,
-                    'namespace':
-                        'EQC'}}
-                t.event.extra = {
-                    'trace_weights': {
-                    'value': trace_weights,
-                    'namespace':
-                        'EQC'}}
+                namespace = 'EQcorrscan'
+                unique_keys = []
+                try:
+                    unique_keys = list(set([key for tr in t.st
+                                            for key in tr.stats.extra.keys()]))
+                    trace_ids = [tr.id for tr in t.st]
+                    if not hasattr(t.event, 'extra'):
+                        t.event.extra = AttribDict()
+                    t.event.extra.update(
+                        {'trace_ids': {'value': trace_ids,
+                                       'namespace': namespace}})
+                except AttributeError:
+                    Logger.warning(
+                        'Template %s has no extended trace-metadata', t.name)
+                for key in unique_keys:
+                    try:
+                        trace_extra_parameters = [
+                            tr.stats.extra.get(key) for tr in t.st]
+                        # Check if metadata are time-values - need to be stored
+                        # as strings in event / Quakeml.
+                        #if 'time' in key:
+                        if all([isinstance(val, UTCDateTime)
+                                for val in trace_extra_parameters]):
+                            trace_extra_parameters = [
+                                str(time_val)
+                                for time_val in trace_extra_parameters]
+                    except AttributeError:
+                        Logger.warning('Traces for template %s are missing '
+                                       'entries for key %s', t.name, key)
+                        continue
+                    event_key = 'trace_' + key
+                    t.event.extra.update(
+                        {event_key: {'value': trace_extra_parameters,
+                                     'namespace': namespace}})
                 tribe_cat.append(t.event)
         i, j = 0, 0
         while i < len(tribe_cat):
@@ -504,10 +496,12 @@ class Tribe(object):
         self.templates.extend([t for t in templates if t.st])
         return
 
-    def _assign_trace_metadata(template, event):
+    def _assign_trace_metadata(self, template, event):
         # TODO: put Template trace metadata back into
         #       trace.extra
         try:
+            if template.st is None:
+                return
             n_traces = len(template.st)
             n_traces_metadata = len(event.extra.trace_ids.value)
             # First check that stream has the right number of traces -
@@ -540,27 +534,42 @@ class Tribe(object):
                 raise NotImplementedError(
                     'Template %s: Read in more traces than trace metadata, '
                     'this should not happen.', template.name)
+            # Set all trace-metadata according to lists stored in event
+            n_traces = len(template.st)
             namespace = 'EQcorrscan'
-            for j_t, tr in enumerate(template.st):
-                tr.stats.extra = {'lengths_npts':
-                    {'value': template.event.extra.trace_npts.value[j_t],
-                     'namespace': namespace}}
-                tr.stats.extra = {'starttime':
-                    {'value': template.event.extra.trace_starttimes.value[j_t],
-                     'namespace': namespace}}
-                tr.stats.extra = {'endtime':
-                    {'value': template.event.extra.trace_endtimes.value[j_t],
-                     'namespace': namespace}}
-                tr.stats.extra = {'peak_snr':
-                    {'value': template.event.extra.trace_peak_snrs.value[j_t],
-                    'namespace': namespace}}
-                tr.stats.extra = {'rms_snr':
-                    {'value': template.event.extra.trace_rms_snrs.value[j_t],
-                    'namespace': namespace}}
-                tr.stats.extra = {'weight':
-                    {'value': template.event.extra.trace_weights.value[j_t],
-                    'namespace': namespace}}
-        except KeyError:
+            for key, value in template.event.extra.items():
+                # Only handle metadata intended for EQcorrscan
+                if not value.namespace == 'EQcorrscan':
+                    continue
+                if not key.startswith('trace_'):
+                    # extra metadata not intended for template stream
+                    continue
+                # Check if need to convert string-representation of list back
+                # to list:
+                if isinstance(value.value, str):
+                    value.value = ast.literal_eval(value.value)
+                    # event.extra[key].update({
+                    #    value: ast.literal_eval(value.value)})
+                # Convert time-strings back to UTCDateTime:
+                if 'time' in key:
+                    value.value = [
+                        UTCDateTime(time_str) for time_str in value.value]
+                if len(value.value) != n_traces:
+                    Logger.warning(
+                        'Not enough values in extra event metadata for key %s '
+                        'to assign to all traces for template %s.', key,
+                        template.name)
+                    continue
+                trace_key = key.removeprefix('trace_')
+                for tr, tr_metadata_value in zip(template.st, value.value):
+                    if not hasattr(tr.stats, 'extra'):
+                        tr.stats.extra = AttribDict()
+                    # tr.stats.extra.update(
+                    #     {trace_key: {'value': tr_metadata_value,
+                    #                  'namespace': namespace}})
+                    tr.stats.extra.update(
+                        {trace_key: tr_metadata_value})
+        except (KeyError, AttributeError):
             # TODO decide whether to support tribes without
             #      extended metadata
             pass
