@@ -24,6 +24,7 @@ import os
 from obspy import Stream, read, Trace, UTCDateTime, read_events
 from obspy.core.event import Catalog
 from obspy.clients.fdsn import Client as FDSNClient
+from obspy.core.util.attribdict import AttribDict
 
 from eqcorrscan.utils.sac_util import sactoevent
 from eqcorrscan.utils import pre_processing
@@ -856,30 +857,20 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
                 continue
             weight = 1
             namespace = 'EQcorrscan'
-            tr_cut.stats.extra = {
-                'lengths_npts': {
-                    'value': tr_cut.stats.npts,
-                    'namespace': namespace}}
-            tr_cut.stats.extra = {
-                'starttime': {
-                    'value': tr_cut.stats.starttime,
-                    'namespace': namespace}}
-            tr_cut.stats.extra = {
-                'endtime': {
-                    'value': tr_cut.stats.endtime,
-                    'namespace': namespace}}
-            tr_cut.stats.extra = {
-                'peak_snr': {
-                    'value': peak_snr,
-                    'namespace': namespace}}
-            tr_cut.stats.extra = {
-                'rms_snr': {
-                    'value': rms_snr,
-                    'namespace': namespace}}
-            tr_cut.stats.extra = {
-                'weight': {
-                    'value': weight,
-                    'namespace': namespace}}
+            if not hasattr(tr_cut.stats, 'extra'):
+                tr_cut.stats.extra = AttribDict()
+            tr_cut.stats.extra.update(
+                {'length_npts': tr_cut.stats.npts})
+            tr_cut.stats.extra.update(
+                {'starttime': tr_cut.stats.starttime})
+            tr_cut.stats.extra.update({
+                'endtime': tr_cut.stats.endtime})
+            tr_cut.stats.extra.update({
+                'peak_snr': peak_snr})
+            tr_cut.stats.extra.update({
+                'rms_snr': rms_snr})
+            tr_cut.stats.extra.update(
+                {'weight': weight})
             st1 += tr_cut
             used_tr = True
         if not used_tr:

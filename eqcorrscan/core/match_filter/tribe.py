@@ -15,6 +15,7 @@ import copy
 import getpass
 import glob
 import os
+import ast
 import shutil
 import tarfile
 import tempfile
@@ -24,6 +25,7 @@ import multiprocessing
 import numpy as np
 from obspy import Catalog, Stream, UTCDateTime, read
 from obspy.core.event import Comment, CreationInfo
+from obspy.core.util.attribdict import AttribDict
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 from eqcorrscan.core.match_filter.template import Template, group_templates
@@ -503,6 +505,12 @@ class Tribe(object):
             if template.st is None:
                 return
             n_traces = len(template.st)
+            # List of strings stored in QuakeML file is read back in as just
+            # one long string; so convert string-representation of list back to
+            # an actual list of strings:
+            if isinstance(event.extra.trace_ids.value, str):
+                event.extra.trace_ids.value = ast.literal_eval(
+                    event.extra.trace_ids.value)
             n_traces_metadata = len(event.extra.trace_ids.value)
             # First check that stream has the right number of traces -
             # otherwise, we'll need to split the traces according to the
@@ -572,6 +580,7 @@ class Tribe(object):
         except (KeyError, AttributeError):
             # TODO decide whether to support tribes without
             #      extended metadata
+            Logger.warning(e)
             pass
         return
 
