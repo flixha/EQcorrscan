@@ -16,6 +16,7 @@ from timeit import default_timer
 
 import numpy as np
 from obspy import Catalog, UTCDateTime, Stream
+from obspy.core.util.attribdict import AttribDict
 
 from eqcorrscan.core.match_filter.helpers import (
     _spike_test, extract_from_stream)
@@ -24,6 +25,7 @@ from eqcorrscan.utils.correlate import get_stream_xcorr
 from eqcorrscan.utils.findpeaks import multi_find_peaks
 from eqcorrscan.utils.pre_processing import (
     dayproc, shortproc, _prep_data_for_correlation)
+from eqcorrscan.core.template_gen import _rms
 
 Logger = logging.getLogger(__name__)
 
@@ -386,7 +388,8 @@ def match_filter(template_names, template_list, st, threshold,
                  plot_format='png', output_cat=False, output_event=True,
                  extract_detections=False, arg_check=True, full_peaks=False,
                  peak_cores=None, spike_test=True, copy_data=True,
-                 export_cccsums=False, use_weights=False, **kwargs):
+                 export_cccsums=False, use_weights=False,
+                 weight_current_noise_level=False, **kwargs):
     """
     Main matched-filter detection function.
 
@@ -682,6 +685,19 @@ def match_filter(template_names, template_list, st, threshold,
 
     weights = None
     if use_weights:
+        if weight_current_noise_level:
+            Logger.info('Updating trace weights according to noise level on '
+                        'continuous data')
+            for tr in st:
+                if not hasattr(tr.stats, 'extra'):
+                    tr.stats.extra = AttribDict()
+                tr.stats.extra.update({'noise_rms_amp': _rms(tr.data)})
+            for templ in templates:
+                for tr in templ:
+                    day_tr = st.select(id=tr.id)[0]
+                    tr.stats.extra.weight = (
+                        tr.stats.extra.weight * tr.stats.extra.noise_rms_amp /
+                        day_tr.stats.extra.noise_rms_amp)
         weights = np.array([[tr.stats.extra.weight for tr in templ]
                             for templ in templates])
         # Normalize weights for each template so that CC sum stays smaller than
