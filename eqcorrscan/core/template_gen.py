@@ -600,7 +600,7 @@ def _rms(array):
 def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
                   all_horiz=False, delayed=True, plot=False, min_snr=None,
                   plotdir=None, vertical_chans=['Z'],
-                  horizontal_chans=['E', 'N', '1', '2', '3']):
+                  horizontal_chans=['E', 'N', '1', '2', '3'], **kwargs):
     """
     Master function to generate a multiplexed template for a single event.
 
@@ -820,10 +820,10 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
             Logger.debug("Cutting {0}".format(tr.id))
             noise_amp = _rms(
                 tr.slice(starttime=starttime - 100, endtime=starttime).data)
-            earliest_station_pick_time = min([
-                p.time for p in _starttime['picks']
+            earliest_station_pick_time = min(
+                [p.time for stt in starttimes for p in stt['picks']
                 if p.waveform_id.station_code == pick.waveform_id.station_code]
-                                             )
+                )
             # Try to determine noise level before first arrival at station
             pre_event_noise_amp = _rms(
                 tr.slice(starttime=earliest_station_pick_time - 300,
@@ -852,9 +852,10 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
             signal_amp = _rms(tr_cut.data)
             # Prefer comparison against pre-event noise for rms_snr:
             if pre_event_noise_amp and not np.isnan(pre_event_noise_amp):
-                rms_snr = signal_amp / pre_event_noise_amp
+                trace_noise_amp = pre_event_noise_amp
             else:
-                rms_snr = signal_amp / noise_amp
+                trace_noise_amp = noise_amp
+            rms_snr = signal_amp / trace_noise_amp
             if min_snr is not None and peak_snr < min_snr:
                 Logger.warning(
                     "Signal-to-noise ratio {0} below threshold for {1}.{2}, "
@@ -863,7 +864,6 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
                         tr_cut.stats.channel))
                 continue
             weight = 1
-            namespace = 'EQcorrscan'
             if not hasattr(tr_cut.stats, 'extra'):
                 tr_cut.stats.extra = AttribDict()
             tr_cut.stats.extra.update(
@@ -872,12 +872,18 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
                 {'starttime': tr_cut.stats.starttime})
             tr_cut.stats.extra.update({
                 'endtime': tr_cut.stats.endtime})
-            tr_cut.stats.extra.update({
-                'peak_snr': peak_snr})
-            tr_cut.stats.extra.update({
-                'rms_snr': rms_snr})
+            tr_cut.stats.extra.update(
+                {'peak_snr': peak_snr})
+            tr_cut.stats.extra.update(
+                {'rms_snr': rms_snr})
             tr_cut.stats.extra.update(
                 {'weight': weight})
+            tr_cut.stats.extra.update(
+                {'noise_rms_amp': trace_noise_amp})
+            tr_cut.stats.extra.update(
+                {'signal_rms_amp': signal_amp})
+            tr_cut.stats.extra.update(
+                {'signal_peak_amp': max(tr_cut.data)})
             st1 += tr_cut
             used_tr = True
         if not used_tr:
