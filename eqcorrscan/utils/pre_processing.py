@@ -21,6 +21,7 @@ from multiprocessing import Pool, cpu_count
 from obspy import Stream, Trace, UTCDateTime
 from obspy.core.trace import Stats
 from obspy.signal.filter import bandpass, lowpass, highpass
+from obspy.core.util.attribdict import AttribDict
 
 
 Logger = logging.getLogger(__name__)
@@ -429,6 +430,13 @@ def dayproc(st, lowcut, highcut, filt_order, samp_rate, starttime,
     return st
 
 
+def _init_extra_attrib_dict():
+    """
+    Return a pre-filled extra-stats AttributeDict for empty template channels.
+    """
+    return AttribDict({'peak_snr': 1, 'rms_snr': 1, 'weight': 1})
+
+
 def process(tr, lowcut, highcut, filt_order, samp_rate,
             starttime=False, clip=False, length=86400,
             seisan_chan_names=False, ignore_length=False, fill_gaps=True,
@@ -524,7 +532,8 @@ def process(tr, lowcut, highcut, filt_order, samp_rate,
                 "station": tr.stats.station, "channel": tr.stats.channel,
                 "network": tr.stats.network, "location": tr.stats.location,
                 "starttime": tr.stats.starttime,
-                "sampling_rate": tr.stats.sampling_rate})
+                "sampling_rate": tr.stats.sampling_rate,
+                'extra': _init_extra_attrib_dict()})
     tr = tr.detrend('simple')
     # Detrend data before filtering
     Logger.debug('I have {0} data points for {1} before processing'.format(
@@ -554,7 +563,8 @@ def process(tr, lowcut, highcut, filt_order, samp_rate,
                     "station": tr.stats.station, "channel": tr.stats.channel,
                     "network": tr.stats.network, "location": tr.stats.location,
                     "starttime": tr.stats.starttime,
-                    "sampling_rate": tr.stats.sampling_rate})
+                    "sampling_rate": tr.stats.sampling_rate,
+                    'extra': _init_extra_attrib_dict()})
         # trim, then calculate length of any pads required
         pre_pad_secs = tr.stats.starttime - starttime
         post_pad_secs = (starttime + length) - tr.stats.endtime
@@ -866,7 +876,8 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
         nan_template += Trace(header=Stats({
             'network': net, 'station': sta, 'location': loc,
             'channel': chan, 'starttime': UTCDateTime(),
-            'npts': template_length, 'sampling_rate': samp_rate}))
+            'npts': template_length, 'sampling_rate': samp_rate,
+            'extra': _init_extra_attrib_dict()}))
 
     # Remove templates with no matching channels
     filt = np.ones(len(template_names)).astype(bool)
@@ -901,7 +912,8 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
                 nan_template += Trace(header=Stats({
                     'network': net, 'station': sta, 'location': loc,
                     'channel': chan, 'starttime': UTCDateTime(),
-                    'npts': template_length, 'sampling_rate': samp_rate}))
+                    'npts': template_length, 'sampling_rate': samp_rate,
+                    'extra': _init_extra_attrib_dict()}))
                 stream_nan_data = np.full(
                     stream_length, np.nan, dtype=np.float32)
                 out_stream += Trace(
@@ -909,7 +921,8 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
                     header=Stats({
                         'network': net, 'station': sta, 'location': loc,
                         'channel': chan, 'starttime': stream_start,
-                        'npts': stream_length, 'sampling_rate': samp_rate}))
+                        'npts': stream_length, 'sampling_rate': samp_rate,
+                        'extra': _init_extra_attrib_dict()}))
                 seed_ids.append((earliest_templ_trace_id, 0))
 
     incomplete_templates = {
