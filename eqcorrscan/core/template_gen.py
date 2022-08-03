@@ -801,11 +801,6 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
             starttimes.append(starttime)
     # Cut the data
     st1 = Stream()
-    trace_starttimes = dict()
-    trace_endtimes = dict()
-    trace_peak_snrs = dict()
-    trace_rms_snrs = dict()
-    trace_weights = dict()
     for _starttime in starttimes:
         Logger.debug(f"Working on channel {_starttime['station']}."
                     f"{_starttime['channel']}")
@@ -825,6 +820,14 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
             Logger.debug("Cutting {0}".format(tr.id))
             noise_amp = _rms(
                 tr.slice(starttime=starttime - 100, endtime=starttime).data)
+            earliest_station_pick_time = min([
+                p.time for p in _starttime['picks']
+                if p.waveform_id.station_code == pick.waveform_id.station_code]
+                                             )
+            # Try to determine noise level before first arrival at station
+            pre_event_noise_amp = _rms(
+                tr.slice(starttime=earliest_station_pick_time - 300,
+                         endtime=earliest_station_pick_time).data)
             tr_cut = tr.slice(
                 starttime=starttime, endtime=starttime + length,
                 nearest_sample=False).copy()
@@ -847,7 +850,11 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
                 (str(tr_cut.stats.starttime), str(tr_cut.stats.endtime)))
             peak_snr = max(tr_cut.data) / noise_amp
             signal_amp = _rms(tr_cut.data)
-            rms_snr = signal_amp / noise_amp
+            # Prefer comparison against pre-event noise for rms_snr:
+            if pre_event_noise_amp and not np.isnan(pre_event_noise_amp):
+                rms_snr = signal_amp / pre_event_noise_amp
+            else:
+                rms_snr = signal_amp / noise_amp
             if min_snr is not None and peak_snr < min_snr:
                 Logger.warning(
                     "Signal-to-noise ratio {0} below threshold for {1}.{2}, "
