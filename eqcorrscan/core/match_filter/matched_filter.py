@@ -386,7 +386,7 @@ def match_filter(template_names, template_list, st, threshold,
                  plot_format='png', output_cat=False, output_event=True,
                  extract_detections=False, arg_check=True, full_peaks=False,
                  peak_cores=None, spike_test=True, copy_data=True,
-                 export_cccsums=False, **kwargs):
+                 export_cccsums=False, use_weights=False, **kwargs):
     """
     Main matched-filter detection function.
 
@@ -679,10 +679,23 @@ def match_filter(template_names, template_list, st, threshold,
     for template in templates:
         Logger.debug(template.__str__())
     Logger.debug(stream.__str__())
+
+    weights = None
+    if use_weights:
+        weights = np.array([[tr.stats.extra.weight for tr in templ]
+                            for templ in templates])
+        # Normalize weights for each template so that CC sum stays smaller than
+        # number of channels:
+        weights = weights / weights.mean(axis=1)
+        Logger.info('Setting weights from trace-stats, minimum weight: %s, '
+                    'maximum weight %s', min(min(weights)), max(max(weights)))
+        # TODO: exception handling if not all traces have weights
+
     multichannel_normxcorr = get_stream_xcorr(xcorr_func, concurrency)
     outtic = default_timer()
     [cccsums, no_chans, chans] = multichannel_normxcorr(
-        templates=templates, stream=stream, cores=cores, **kwargs)
+        templates=templates, stream=stream, cores=cores, weights=weights,
+        **kwargs)
     if len(cccsums[0]) == 0:
         raise MatchFilterError('Correlation has not run, zero length cccsum')
     outtoc = default_timer()
