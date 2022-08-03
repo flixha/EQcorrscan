@@ -971,12 +971,17 @@ def fmf_xcorr(templates, stream, pads, arch="precise", *args, **kwargs):
 
     used_chans = ~np.isnan(templates).any(axis=1)
 
+    if 'weights' in kwargs and kwargs.get('weights') is not None:
+        weights = kwargs.get('weights')
+    else:
+        weights = np.ones((1, templates.shape[0]))
+
     # We have to reshape to an extra dimension for FMF
     ccc = _run_fmf_xcorr(
         template_arr=templates.reshape(
             (1, templates.shape[0], templates.shape[1])).swapaxes(0, 1),
         data_arr=stream.reshape((1, stream.shape[0])),
-        weights=np.ones((1, templates.shape[0])),
+        weights=weights,
         pads=np.array([pads]),
         arch=arch.lower())
 
@@ -993,7 +998,8 @@ def _fmf_gpu(templates, stream, *args, **kwargs):
     if not GPU_LOADED:
         Logger.warning("FMF reports GPU not loaded, reverting to CPU")
         return _fmf_cpu(templates=templates, stream=stream, *args, **kwargs)
-    return _fmf_multi_xcorr(templates, stream, arch="gpu")
+    kwargs.pop('arch', None)
+    return _fmf_multi_xcorr(templates, stream, arch="gpu", *args, **kwargs)
 
 
 @fmf_xcorr.register("multithread")
@@ -1006,7 +1012,8 @@ def _fmf_cpu(templates, stream, *args, **kwargs):
     if not CPU_LOADED:
         raise NotImplementedError(
             "FMF reports CPU not loaded - try rebuilding FMF")
-    return _fmf_multi_xcorr(templates, stream, arch="precise")
+    kwargs.pop('arch', None)
+    return _fmf_multi_xcorr(templates, stream, arch="precise", *args, **kwargs)
 
 
 def _fmf_multi_xcorr(templates, stream, *args, **kwargs):
@@ -1053,7 +1060,11 @@ def _fmf_multi_xcorr(templates, stream, *args, **kwargs):
     # Moveouts should be [templates x traces]
     pads = np.array([pad_dict[seed_id] for seed_id in seed_ids]).swapaxes(0, 1)
     # Weights should be shaped like pads
-    weights = np.ones_like(pads)
+    # weights = np.ones_like(pads)
+    if 'weights' in kwargs and kwargs.get('weights') is not None:
+        weights = kwargs.get('weights')
+    else:
+        weights = np.ones_like(pads)
 
     cccsums = _run_fmf_xcorr(
         template_arr=t_arr, weights=weights, pads=pads,
