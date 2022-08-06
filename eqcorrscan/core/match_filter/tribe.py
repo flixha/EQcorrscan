@@ -542,8 +542,9 @@ class Tribe(object):
                 template.st = template_st_cut
             elif n_traces > n_traces_metadata:
                 raise NotImplementedError(
-                    'Template %s: Read in more traces than trace metadata, '
-                    'this should not happen.', template.name)
+                    'Template %s: Read in more traces (%s) than trace metadata'
+                    ' (%s), this should not happen.', template.name, n_traces,
+                    n_traces_metadata)
             # Set all trace-metadata according to lists stored in event
             n_traces = len(template.st)
             namespace = 'EQcorrscan'
