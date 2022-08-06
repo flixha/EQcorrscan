@@ -494,128 +494,133 @@ class Tribe(object):
                 Logger.error('No waveform for template: ' + template.name)
                 continue
             # template = template._check_trace_length()
-            self._assign_trace_metadata(template, event)
+            self._assign_trace_metadata(template)
         self.templates.extend([t for t in templates if t.st])
         return
 
-    def _assign_trace_metadata(self, template, event):
+    def _assign_trace_metadata(self, template):
         """
         Internal function to put template trace metadata back into
         trace.stats.extra.
         """
-        try:
-            if template.st is None:
-                return
-            n_traces = len(template.st)
-            # List of strings stored in QuakeML file is read back in as just
-            # one long string; so convert string-representation of list back to
-            # an actual list of strings:
-            if isinstance(event.extra.trace_ids.value, str):
-                event.extra.trace_ids.value = ast.literal_eval(
-                    event.extra.trace_ids.value)
-            n_traces_metadata = len(event.extra.trace_ids.value)
-            # First check that stream has the right number of traces -
-            # otherwise, we'll need to split the traces according to the
-            # metadata. See https://github.com/eqcorrscan/EQcorrscan/issues/497
-            if n_traces < n_traces_metadata:
-                Logger.info(
-                    'Need to split traces for template %s', template.name)
-                tr_ids = event.extra.trace_ids.value
-                tr_starttimes = event.extra.trace_starttimes.value
-                tr_endtimes = event.extra.trace_endtimes.value
-                tr_lengths_npts = event.extra.trace_lengths_npts.value
-                template_st_cut = Stream()
-                for tr_id, tr_starttime, tr_endtime, tr_length_npts in zip(
-                        tr_ids, tr_starttimes, tr_endtimes, tr_lengths_npts):
-                    # There could be multiple traces with same ID in stream
-                    st_cut = template.st.select(id=tr_id).slice(
-                        starttime=tr_starttime, endtime=tr_endtime,
-                        nearest_sample=False).copy()
-                    # Need to select the cut trace that has the exact same
-                    # length as during writing of the file.
-                    tr_cut = None
-                    tr_found = False
-                    for tr in st_cut:
-                        if tr.stats.npts == tr_length_npts:
-                            tr_cut = tr
-                            tr_found = True
-                            break
-                    # TODO: throw useful error when it does not work like this?
-                    if not tr_found:
-                        Logger.error(
-                            'Could not reconstruct template traces, check if '
-                            'template traces have the correct length (%s)',
-                            template.name)
-                    template_st_cut += tr_cut
-                template.st = template_st_cut
-            elif n_traces > n_traces_metadata:
-                raise NotImplementedError(
-                    'Template %s: Read in more traces (%s) than trace metadata'
-                    ' (%s), this should not happen.', template.name, n_traces,
-                    n_traces_metadata)
-            # Set all trace-metadata according to lists stored in event
-            n_traces = len(template.st)
-            namespace = 'EQcorrscan'
-            for key, value in template.event.extra.items():
-                # Only handle metadata intended for EQcorrscan
-                if not value.namespace == 'EQcorrscan':
-                    continue
-                if not key.startswith('trace_'):
-                    # extra metadata not intended for template stream
-                    continue
-                # Check if need to convert string-representation of list back
-                # to list:
-                if isinstance(value.value, str):
-                    value.value = ast.literal_eval(value.value)
-                    # event.extra[key].update({
-                    #    value: ast.literal_eval(value.value)})
-                # Convert time-strings back to UTCDateTime:
-                if 'time' in key:
-                    value.value = [
-                        UTCDateTime(time_str) for time_str in value.value]
-                if len(value.value) != n_traces:
-                    Logger.warning(
-                        'Not enough values in extra event metadata for key %s '
-                        'to assign to all traces for template %s.', key,
+        # try:
+        if template.st is None:
+            return
+        n_traces = len(template.st)
+        # List of strings stored in QuakeML file is read back in as just
+        # one long string; so convert string-representation of list back to
+        # an actual list of strings:
+        event = template.event
+        if isinstance(event.extra.trace_ids.value, str):
+            event.extra.trace_ids.value = ast.literal_eval(
+                event.extra.trace_ids.value)
+        n_traces_metadata = len(event.extra.trace_ids.value)
+        for key, value in template.event.extra.items():
+            # Only handle metadata intended for EQcorrscan
+            if not value.namespace == 'EQcorrscan':
+                continue
+            if not key.startswith('trace_'):
+                # extra metadata not intended for template stream
+                continue
+            # Check if need to convert string-representation of list back
+            # to list:
+            if isinstance(value.value, str):
+                try:
+                    # time strings cannot be parsed properly by np.fromstring
+                    if 'time' in key:
+                        value.value = ast.literal_eval(value.value)
+                    # Nans cannot be properly parsed by literal_eval
+                    else:
+                        value.value = np.fromstring(
+                            value.value.strip("[]"), sep=",")
+                except ValueError as e:
+                    Logger.error(
+                        'Error parsing trace stats for template %s, key %s, : '
+                        '%s', template.name, key, value.value)
+                    Logger.error(e)
+                # event.extra[key].update({
+                #    value: ast.literal_eval(value.value)})
+            # Convert time-strings back to UTCDateTime:
+            if 'time' in key:
+                value.value = [
+                    UTCDateTime(time_str) for time_str in value.value]
+        # First check that stream has the right number of traces -
+        # otherwise, we'll need to split the traces according to the
+        # metadata. See https://github.com/eqcorrscan/EQcorrscan/issues/497
+        if n_traces < n_traces_metadata:
+            Logger.info(
+                'Need to split traces for template %s', template.name)
+            tr_ids = event.extra.trace_ids.value
+            tr_starttimes = event.extra.trace_starttime.value
+            tr_endtimes = event.extra.trace_endtime.value
+            tr_length_npts = event.extra.trace_length_npts.value
+            template_st_cut = Stream()
+            for tr_id, tr_starttime, tr_endtime, tr_length_npts in zip(
+                    tr_ids, tr_starttimes, tr_endtimes, tr_length_npts):
+                # There could be multiple traces with same ID in stream
+                st_cut = template.st.select(id=tr_id).slice(
+                    starttime=tr_starttime, endtime=tr_endtime,
+                    nearest_sample=False).copy()
+                # Need to select the cut trace that has the exact same
+                # length as during writing of the file.
+                tr_cut = None
+                tr_found = False
+                for tr in st_cut:
+                    if tr.stats.npts == tr_length_npts:
+                        tr_cut = tr
+                        tr_found = True
+                        break
+                # TODO: throw useful error when it does not work like this?
+                if not tr_found:
+                    Logger.error(
+                        'Could not reconstruct template traces, check if '
+                        'template traces have the correct length (%s)',
                         template.name)
-                    continue
-                trace_key = key.removeprefix('trace_')
-                for tr, tr_metadata_value in zip(template.st, value.value):
-                    if not hasattr(tr.stats, 'extra'):
-                        tr.stats.extra = AttribDict()
-                    # tr.stats.extra.update(
-                    #     {trace_key: {'value': tr_metadata_value,
-                    #                  'namespace': namespace}})
-                    tr.stats.extra.update(
-                        {trace_key: tr_metadata_value})
+                template_st_cut += tr_cut
+            template.st = template_st_cut
+        elif n_traces > n_traces_metadata:
+            Logger.warning(
+                'Traces: %s, trace metadata: ',
+                str([tr.id for tr in template.st]),
+                str([event.extra.trace_ids.value]))
+            msg = ('Template {0}: Read in more traces ({1}) than trace ' +
+                    'metadata ({2}, event {3}), this should not happen.'
+                    ).format(
+                        template.name, n_traces, n_traces_metadata,
+                        event.short_str())
+            raise NotImplementedError(msg)
+        # Set all trace-metadata according to lists stored in event
+        n_traces = len(template.st)
+        namespace = 'EQcorrscan'
+        for key, value in template.event.extra.items():
+            # Only handle metadata intended for EQcorrscan
+            if not value.namespace == 'EQcorrscan':
+                continue
+            if not key.startswith('trace_'):
+                # extra metadata not intended for template stream
+                continue
+            if len(value.value) != n_traces:
+                Logger.warning(
+                    'Not enough values in extra event metadata for key %s '
+                    'to assign to all traces for template %s.', key,
+                    template.name)
+                continue
+            trace_key = key.removeprefix('trace_')
+            for tr, tr_metadata_value in zip(template.st, value.value):
+                if not hasattr(tr.stats, 'extra'):
+                    tr.stats.extra = AttribDict()
+                # tr.stats.extra.update(
+                #     {trace_key: {'value': tr_metadata_value,
+                #                  'namespace': namespace}})
+                tr.stats.extra.update(
+                    {trace_key: tr_metadata_value})
 
-            # namespace = 'EQcorrscan'
-            # for j_t, tr in enumerate(template.st):
-            #     if not hasattr(tr.stats, 'extra'):
-            #         tr.stats.extra = AttribDict()
-            #     tr.stats.extra.update({'lengths_npts':
-            #         {'value': template.event.extra.trace_npts.value[j_t],
-            #          'namespace': namespace}})
-            #     tr.stats.extra.update({'starttime':
-            #         {'value': template.event.extra.trace_starttimes.value[j_t],
-            #          'namespace': namespace}})
-            #     tr.stats.extra.update({'endtime':
-            #         {'value': template.event.extra.trace_endtimes.value[j_t],
-            #          'namespace': namespace}})
-            #     tr.stats.extra.update({'peak_snr':
-            #         {'value': template.event.extra.trace_peak_snrs.value[j_t],
-            #         'namespace': namespace}})
-            #     tr.stats.extra.update({'rms_snr':
-            #         {'value': template.event.extra.trace_rms_snrs.value[j_t],
-            #         'namespace': namespace}})
-            #     tr.stats.extra.update({'weight':
-            #         {'value': template.event.extra.trace_weights.value[j_t],
-            #         'namespace': namespace}})
-        except (KeyError, AttributeError) as e:
-            # TODO decide whether to support tribes without
-            #      extended metadata
-            Logger.warning(e)
-            pass
+        # except (KeyError, AttributeError) as e:
+        #     # TODO decide whether to support tribes without
+        #     #      extended metadata
+        #     Logger.warning('Error reconstructing template %s: %s',
+        #                    template.name, e)
+        #     pass
         return
 
     def cluster(self, method, **kwargs):

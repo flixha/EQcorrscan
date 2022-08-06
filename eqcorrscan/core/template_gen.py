@@ -853,8 +853,14 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
             # Prefer comparison against pre-event noise for rms_snr:
             if pre_event_noise_amp and not np.isnan(pre_event_noise_amp):
                 trace_noise_amp = pre_event_noise_amp
-            else:
+            elif noise_amp and not np.isnan(noise_amp):
                 trace_noise_amp = noise_amp
+            elif signal_amp and not np.isnan(signal_amp):
+                # TODO: if both noise windows become nan maybe there need to be
+                #       more checks?
+                trace_noise_amp = signal_amp
+            else:
+                continue
             rms_snr = signal_amp / trace_noise_amp
             if min_snr is not None and peak_snr < min_snr:
                 Logger.warning(
