@@ -534,10 +534,18 @@ class Tribe(object):
                     # Need to select the cut trace that has the exact same
                     # length as during writing of the file.
                     tr_cut = None
+                    tr_found = False
                     for tr in st_cut:
                         if tr.stats.npts == tr_length_npts:
                             tr_cut = tr
+                            tr_found = True
+                            break
                     # TODO: throw useful error when it does not work like this?
+                    if not tr_found:
+                        Logger.error(
+                            'Could not reconstruct template traces, check if '
+                            'template traces have the correct length (%s)',
+                            template.name)
                     template_st_cut += tr_cut
                 template.st = template_st_cut
             elif n_traces > n_traces_metadata:
