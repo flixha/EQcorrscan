@@ -499,8 +499,10 @@ class Tribe(object):
         return
 
     def _assign_trace_metadata(self, template, event):
-        # TODO: put Template trace metadata back into
-        #       trace.extra
+        """
+        Internal function to put template trace metadata back into
+        trace.stats.extra.
+        """
         try:
             if template.st is None:
                 return
