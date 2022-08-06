@@ -820,6 +820,8 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
             Logger.debug("Cutting {0}".format(tr.id))
             noise_amp = _rms(
                 tr.slice(starttime=starttime - 100, endtime=starttime).data)
+            if np.isnan(noise_amp):
+                continue
             earliest_station_pick_time = min(
                 [p.time for stt in starttimes for p in stt['picks']
                 if p.waveform_id.station_code == pick.waveform_id.station_code]
