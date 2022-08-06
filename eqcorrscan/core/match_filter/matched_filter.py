@@ -694,10 +694,15 @@ def match_filter(template_names, template_list, st, threshold,
                 tr.stats.extra.update({'noise_rms_amp': _rms(tr.data)})
             for templ in templates:
                 for tr in templ:
-                    day_tr = st.select(id=tr.id)[0]
+                    day_tr = st.select(id=tr.id)
+                    # Continuous data does not always contain all template
+                    # traces
+                    day_noise_rms_amp =tr.stats.extra.noise_rms_amp
+                    if day_tr:
+                        day_noise_rms_amp = day_tr[0].stats.extra.noise_rms_amp
                     tr.stats.extra.weight = (
                         tr.stats.extra.weight * tr.stats.extra.noise_rms_amp /
-                        day_tr.stats.extra.noise_rms_amp)
+                        day_noise_rms_amp)
         weights = np.array([[tr.stats.extra.weight for tr in templ]
                             for templ in templates])
         # Normalize weights for each template so that CC sum stays smaller than
