@@ -688,18 +688,19 @@ def match_filter(template_names, template_list, st, threshold,
         if weight_current_noise_level:
             Logger.info('Updating trace weights according to noise level on '
                         'continuous data')
-            for tr in st:
-                if not hasattr(tr.stats, 'extra'):
-                    tr.stats.extra = AttribDict()
-                tr.stats.extra.update({'noise_rms_amp': _rms(tr.data)})
+            for day_tr in st:
+                if not hasattr(day_tr.stats, 'extra'):
+                    day_tr.stats.extra = AttribDict()
+                day_tr.stats.extra.update({'noise_rms_amp': _rms(day_tr.data)})
             for templ in templates:
                 for tr in templ:
                     day_tr = st.select(id=tr.id)
                     # Continuous data does not always contain all template
-                    # traces
-                    day_noise_rms_amp =tr.stats.extra.noise_rms_amp
+                    # traces; then just set dummy value from template
+                    day_noise_rms_amp = tr.stats.extra.noise_rms_amp
                     if day_tr:
-                        day_noise_rms_amp = day_tr[0].stats.extra.noise_rms_amp
+                        day_tr = day_tr[0]
+                        day_noise_rms_amp = day_tr.stats.extra.noise_rms_amp
                     tr.stats.extra.weight = (
                         tr.stats.extra.weight * tr.stats.extra.noise_rms_amp /
                         day_noise_rms_amp)
