@@ -23,6 +23,8 @@ from obspy.core.trace import Stats
 from obspy.signal.filter import bandpass, lowpass, highpass
 from obspy.core.util.attribdict import AttribDict
 
+import eqcorrscan.core.template_gen
+
 
 Logger = logging.getLogger(__name__)
 
@@ -662,6 +664,10 @@ def process(tr, lowcut, highcut, filt_order, samp_rate,
     # Replace the gaps with zeros
     if gappy:
         tr = _zero_pad_gaps(tr, gaps, fill_gaps=fill_gaps)
+    if not hasattr(tr.stats, 'extra'):
+        tr.stats.extra = AttribDict()
+    tr.stats.extra.update(
+        {'noise_rms_amp': eqcorrscan.core.template_gen._rms(tr.data)})
     return tr
 
 
