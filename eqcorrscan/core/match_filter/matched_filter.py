@@ -708,7 +708,7 @@ def match_filter(template_names, template_list, st, threshold,
                             for templ in templates])
         # Normalize weights for each template so that CC sum stays smaller than
         # number of channels:
-        weights = weights / weights.mean(axis=1)
+        weights = weights / weights.mean(axis=1, keepdims=True)
         Logger.info('Setting weights from trace-stats, minimum weight: %s, '
                     'maximum weight %s', min(min(weights)), max(max(weights)))
         # TODO: exception handling if not all traces have weights
