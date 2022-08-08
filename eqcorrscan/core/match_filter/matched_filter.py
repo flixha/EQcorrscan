@@ -710,7 +710,7 @@ def match_filter(template_names, template_list, st, threshold,
         # number of channels:
         weights = weights / weights.mean(axis=1, keepdims=True)
         Logger.info('Setting weights from trace-stats, minimum weight: %s, '
-                    'maximum weight %s', min(min(weights)), max(max(weights)))
+                    'maximum weight %s', np.min(weights), np.max(weights))
         # TODO: exception handling if not all traces have weights
 
     multichannel_normxcorr = get_stream_xcorr(xcorr_func, concurrency)
