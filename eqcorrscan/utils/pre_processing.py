@@ -434,7 +434,9 @@ def _init_extra_attrib_dict():
     """
     Return a pre-filled extra-stats AttributeDict for empty template channels.
     """
-    return AttribDict({'peak_snr': 0, 'rms_snr': 0, 'weight': 0})
+    return AttribDict({'peak_snr': 0, 'rms_snr': 0, 'weight': 0,
+                       'noise_rms_amp': 1, 'signal_rms_amp': 1,
+                       'signal_peak_amp': 1})
 
 
 def process(tr, lowcut, highcut, filt_order, samp_rate,
