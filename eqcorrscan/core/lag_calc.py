@@ -225,7 +225,8 @@ def xcorr_pick_family(family, stream, shift_len=0.2, min_cc=0.4,
                       horizontal_chans=['E', 'N', '1', '2', '3'],
                       cores=1, interpolate=False,
                       plot=False, plotdir=None, export_cc=False, cc_dir=None,
-                      max_detect_val_deviation=0.3, **kwargs):
+                      max_detect_val_deviation=0.3,
+                      ignore_cccsum_comparison=False, **kwargs):
     """
     Compute cross-correlation picks for detections in a family.
 
