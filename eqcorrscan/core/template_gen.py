@@ -892,6 +892,8 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
                 {'signal_rms_amp': signal_amp})
             tr_cut.stats.extra.update(
                 {'signal_peak_amp': max(tr_cut.data)})
+            tr_cut.stats.extra.update(
+                {'phase_hint': pick.phase_hint})
             st1 += tr_cut
             used_tr = True
         if not used_tr:

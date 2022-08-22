@@ -351,7 +351,10 @@ def xcorr_pick_family(family, stream, shift_len=0.2, min_cc=0.4,
                 continue
             cccsum += cc_max
             phase = None
-            if stachan.channel[1][-1] in vertical_chans:
+            if (hasattr(tr.stats, 'extra') and
+                    hasattr(tr.stats.extra, 'phase_hint')):
+                phase = tr.stats.extra.phase_hint
+            elif stachan.channel[1][-1] in vertical_chans:
                 phase = 'P'
             elif stachan.channel[1][-1] in horizontal_chans:
                 phase = 'S'
