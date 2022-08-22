@@ -279,6 +279,12 @@ def xcorr_pick_family(family, stream, shift_len=0.2, min_cc=0.4,
         Maximum ratio by which the detection value from lag_calc may deviate
         from the detection value from match_filter for a picked event to be
         returned. Defaults to 0.3.
+    :type ignore_cccsum_comparison: bool
+    :param ignore_cccsum_comparison:
+        When True, ignore changes in cccsum between match_filter and lag_calc -
+        this may be reasonable e.g., when running match_filter with weights and
+        lag_calc without weights; but be aware that this turns off a useful
+        consistency check.
 
     :return: Dictionary of picked events keyed by detection id.
     """
@@ -367,7 +373,10 @@ def xcorr_pick_family(family, stream, shift_len=0.2, min_cc=0.4,
                 msg = ('lag-calc has decreased cccsum from %f to %f - '
                        % (detection.detect_val, checksum))
                 Logger.error(msg)
-                continue
+                if ignore_cccsum_comparison:
+                    pass
+                else:
+                    continue
         else:
             Logger.warning(
                 'Cannot check if cccsum is better, used {0} channels for '
