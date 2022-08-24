@@ -346,8 +346,8 @@ def xcorr_pick_family(family, stream, shift_len=0.2, min_cc=0.4,
             checksum += cc_max
             used_chans += 1
             if cc_max < cc_thresh:
-                Logger.debug('Correlation of {0} is below threshold, not '
-                             'using'.format(cc_max))
+                Logger.debug('%s: Correlation of %s is below threshold, not '
+                             'using', stachan, cc_max)
                 continue
             cccsum += cc_max
             phase = None
