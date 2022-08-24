@@ -714,7 +714,8 @@ def match_filter(template_names, template_list, st, threshold,
         weights = weights * (np.count_nonzero(weights, axis=1, keepdims=True) /
                              weights.sum(axis=1, keepdims=True))
         Logger.info('Setting weights from trace-stats, minimum weight: %s, '
-                    'maximum weight %s', np.min(weights), np.max(weights))
+                    'maximum weight %s, total sum of weights: %s',
+                    np.min(weights), np.max(weights), np.sum(weights))
         # TODO: exception handling if not all traces have weights
 
     multichannel_normxcorr = get_stream_xcorr(xcorr_func, concurrency)
