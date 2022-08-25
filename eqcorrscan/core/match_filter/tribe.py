@@ -526,13 +526,15 @@ class Tribe(object):
             # to list:
             if isinstance(value.value, str):
                 try:
-                    # time strings cannot be parsed properly by np.fromstring
-                    if 'time' in key:
+                    # time and phase strings cannot be parsed properly by
+                    # np.fromstring
+                    if 'time' in key or 'phase' in key:
                         value.value = ast.literal_eval(value.value)
                     # Nans cannot be properly parsed by literal_eval
                     else:
                         value.value = np.fromstring(
                             value.value.strip("[]"), sep=",")
+                        # value.value = ast.literal_eval(value.value)
                 except ValueError as e:
                     Logger.error(
                         'Error parsing trace stats for template %s, key %s, : '
