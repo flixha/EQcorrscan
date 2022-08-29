@@ -944,13 +944,21 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
         out_template = nan_template.copy()
         for channel_number, _seed_id in enumerate(seed_ids):
             seed_id, channel_index = _seed_id
-            template_channel = template.select(id=seed_id)
+            # template_channel = template.select(id=seed_id)
+            # Quickest way to select traces - use instead of st.select because
+            # this line is called very often.
+            net, sta, loc, chan = seed_id.split('.')
+            template_channel = Stream(
+                [tr for tr in template
+                 if (tr.stats.network == net and tr.stats.station == sta and
+                     tr.stats.location == loc and tr.stats.channel == chan)])
             if len(template_channel) <= channel_index:
                 out_template[channel_number].data = nan_channel
                 out_template[channel_number].stats.starttime = \
                     template_starttime
             else:
                 out_template[channel_number] = template_channel[channel_index]
+
         # If a template-trace matches a NaN-trace in the stream , then set
         # template-trace to NaN so that this trace does not appear in channel-
         # list of detections.
