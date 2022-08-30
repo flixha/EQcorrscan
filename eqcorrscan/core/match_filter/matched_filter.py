@@ -741,8 +741,10 @@ def match_filter(template_names, template_list, st, threshold,
     if str(threshold_type) == str("absolute"):
         thresholds = [threshold for _ in range(len(cccsums))]
     elif str(threshold_type) == str('MAD'):
-        thresholds = [threshold * np.median(np.abs(cccsum))
-                      for cccsum in cccsums]
+        # thresholds = [threshold * np.median(np.abs(cccsum))
+        #              for cccsum in cccsums]
+        # np-array should be 25 % quicker:
+        thresholds = threshold * np.median(np.abs(np.array(cccsums)), axis=1)
     else:
         thresholds = [threshold * no_chans[i] for i in range(len(cccsums))]
     if peak_cores is None:
