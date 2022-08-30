@@ -557,7 +557,9 @@ class Template(object):
                 # tr.stats.extra.update(
                 #     {trace_key: {'value': tr_metadata_value,
                 #                  'namespace': namespace}})
-                tr.stats.extra.update({trace_key: tr_metadata_value})
+                # tr.stats.extra.update({trace_key: tr_metadata_value})
+                # quicker:
+                tr.stats.extra[trace_key] = tr_metadata_value
 
         # except (KeyError, AttributeError) as e:
         #     # TODO decide whether to support templates without
