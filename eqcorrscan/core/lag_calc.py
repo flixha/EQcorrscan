@@ -24,6 +24,7 @@ from eqcorrscan.utils.correlate import get_stream_xcorr
 from eqcorrscan.core.match_filter.family import Family
 from eqcorrscan.core.match_filter.template import Template
 from eqcorrscan.utils.plotting import plot_repicked
+from eqcorrscan.utils.pre_processing import _stream_quick_select
 
 show_interp_deprec_warning = True
 
@@ -168,7 +169,8 @@ def _concatenate_and_correlate(streams, template, cores):
     for i, chan in enumerate(chans):
         start_index = 0
         for j, stream in enumerate(streams):
-            tr = stream.select(id=chan)
+            # tr = stream.select(id=chan)
+            tr = _stream_quick_select(stream, chan)
             if len(tr) == 0:
                 # No data for this channel in this stream
                 used_chans[j].append(UsedChannel(
@@ -444,9 +446,13 @@ def _prepare_data(family, detect_data, shift_len, all_vert=False,
     if family.template.event and family.template.event.picks:
         prepick = np.max(
             [pk.time -
-             family.template.st.select(id=pk.waveform_id.id)[0].stats.starttime
+             # family.template.st.select(id=pk.waveform_id.id)[0].stats.starttime
+             _stream_quick_select(
+                 family.template.st, pk.waveform_id.id)[0].stats.starttime
              for pk in family.template.event.picks
-             if len(family.template.st.select(id=pk.waveform_id.id)) == 1])
+             # if len(family.template.st.select(id=pk.waveform_id.id)) == 1]
+             if len(_stream_quick_select(
+                    family.template.st, pk.waveform_id.id)) == 1])
     stream_prepick = prepick + shift_len
     # stream_prepick = shift_len
     length = lengths.pop() + (2 * shift_len)

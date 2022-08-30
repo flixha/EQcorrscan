@@ -772,6 +772,21 @@ def _fill_gaps(tr):
     return gaps, tr
 
 
+def _stream_quick_select(stream, seed_id):
+    """
+    4x quicker selection of traces in stream by full Seed-ID. Does not support
+    wildcards or selection by network/station/location/channel alone.
+    """
+    net, sta, loc, chan = seed_id.split('.')
+    stream = Stream(
+        [tr for tr in stream
+         if (tr.stats.network == net and
+             tr.stats.station == sta and
+             tr.stats.location == loc and
+             tr.stats.channel == chan)])
+    return stream
+
+
 def _prep_data_for_correlation(stream, templates, template_names=None,
                                force_stream_epoch=True):
     """
@@ -947,11 +962,7 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
             # template_channel = template.select(id=seed_id)
             # Quickest way to select traces - use instead of st.select because
             # this line is called very often.
-            net, sta, loc, chan = seed_id.split('.')
-            template_channel = Stream(
-                [tr for tr in template
-                 if (tr.stats.network == net and tr.stats.station == sta and
-                     tr.stats.location == loc and tr.stats.channel == chan)])
+            template_channel = _stream_quick_select(template, seed_id)
             if len(template_channel) <= channel_index:
                 out_template[channel_number].data = nan_channel
                 out_template[channel_number].stats.starttime = \

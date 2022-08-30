@@ -28,6 +28,7 @@ from eqcorrscan.core.match_filter.helpers import _test_event_similarity
 from eqcorrscan.core.match_filter.matched_filter import (
     _group_detect, MatchFilterError)
 from eqcorrscan.core import template_gen
+from eqcorrscan.utils.pre_processing import _stream_quick_select
 
 Logger = logging.getLogger(__name__)
 
@@ -501,7 +502,8 @@ class Template(object):
             for tr_id, tr_starttime, tr_endtime, tr_length_npts in zip(
                     tr_ids, tr_starttimes, tr_endtimes, tr_length_npts):
                 # There could be multiple traces with same ID in stream
-                st_cut = self.st.select(id=tr_id).slice(
+                # st_cut = self.st.select(id=tr_id).slice(
+                st_cut = _stream_quick_select(self.st, tr_id).slice(
                     starttime=tr_starttime, endtime=tr_endtime,
                     nearest_sample=False).copy()
                 # Need to select the cut trace that has the exact same
