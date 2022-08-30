@@ -485,13 +485,15 @@ class Template(object):
                 #    value: ast.literal_eval(value.value)})
             # Convert time-strings back to UTCDateTime:
             if 'time' in key:
-                # value.value = [
-                #     UTCDateTime(time_str, iso8601=True)
-                #     for time_str in value.value]
-                # UTCDateTime.strptime should be about 30 % quicker:
-                value.value = [
-                    UTCDateTime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
-                    for time_str in value.value]
+                if isinstance(value.value, str):
+                    # value.value = [
+                    #     UTCDateTime(time_str, iso8601=True)
+                    #     for time_str in value.value]
+                    # UTCDateTime.strptime should be about 30 % quicker:
+                    value.value = [
+                        UTCDateTime.strptime(date_string=time_str,
+                                             format="%Y-%m-%dT%H:%M:%S.%fZ")
+                        for time_str in value.value]
         # First check that stream has the right number of traces -
         # otherwise, we'll need to split the traces according to the
         # metadata. See https://github.com/eqcorrscan/EQcorrscan/issues/497
