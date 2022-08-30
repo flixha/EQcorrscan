@@ -15,12 +15,12 @@ import copy
 import getpass
 import glob
 import os
-import ast
 import shutil
 import tarfile
 import tempfile
 import logging
 import multiprocessing
+from joblib import Parallel, delayed
 
 import numpy as np
 from obspy import Catalog, Stream, UTCDateTime, read
@@ -427,6 +427,7 @@ class Tribe(object):
             serial.
         """
         cores = cores or multiprocessing.cpu_count()
+        max_cores = cores
         templates = _par_read(dirname=dirname, compressed=False)
         t_files = glob.glob(dirname + os.sep + '*.ms')
         t_files_dict = {os.path.splitext(os.path.basename(t))[0]: t
@@ -479,22 +480,33 @@ class Tribe(object):
             template_streams = {
                 key: read(value) for key, value in t_files_dict.items()
                 if key in template_names}
-
         Logger.info("Reconstructing tribe")
+        # Fill dictionary with template.names and events for quick retrieval
+        event_template_name_dict = {}
+        for event in tribe_cat:
+            event_found = False
+            for comment in event.comments:
+                if comment.text.startswith('eqcorrscan_template_'):
+                    template_name = comment.text.removeprefix(
+                        'eqcorrscan_template_')
+                    event_template_name_dict.update({template_name: event})
+                    # template.event = event
+                    break
+                if event_found:
+                    break
+        # Retrieve template events from dict
         for template in templates:
             if template.name in previous_template_names:
                 # Don't read in for templates that we already have.
                 continue
-            for event in tribe_cat:
-                for comment in event.comments:
-                    if comment.text == 'eqcorrscan_template_' + template.name:
-                        template.event = event
+            template.event = event_template_name_dict[template.name]
+        for template in templates:
             template.st = template_streams.get(template.name, None)
             if not template.st:
                 Logger.error('No waveform for template: ' + template.name)
                 continue
             # template = template._check_trace_length()
-            self._assign_trace_metadata(template)
+            template._assign_trace_metadata()
         self.templates.extend([t for t in templates if t.st])
         return
 

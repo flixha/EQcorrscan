@@ -688,23 +688,25 @@ def match_filter(template_names, template_list, st, threshold,
         if weight_current_noise_level:
             Logger.info('Updating trace weights according to noise level in '
                         'continuous data')
-            for day_tr in st:
-                if not hasattr(day_tr.stats, 'extra'):
-                    day_tr.stats.extra = AttribDict()
-                    day_tr.stats.extra.update(
-                        {'noise_rms_amp': _rms(day_tr.data)})
+            cont_trace_noise_dict = {}
+            for cont_tr in st:
+                if not hasattr(cont_tr.stats, 'extra'):
+                    cont_tr.stats.extra = AttribDict()
+                    cont_tr.stats.extra.update(
+                        {'noise_rms_amp': _rms(cont_tr.data)})
+                cont_trace_noise_dict.update(
+                    {cont_tr.id: cont_tr.stats.extra.noise_rms_amp})
             for templ in templates:
                 for tr in templ:
-                    day_tr = st.select(id=tr.id)
                     # Continuous data does not always contain all template
                     # traces; then just set dummy value from template
-                    day_noise_rms_amp = tr.stats.extra.noise_rms_amp
-                    if day_tr:
-                        day_tr = day_tr[0]
-                        day_noise_rms_amp = day_tr.stats.extra.noise_rms_amp
+                    try:
+                        cont_noise_rms_amp = cont_trace_noise_dict[tr.id]
+                    except KeyError:
+                        cont_noise_rms_amp = tr.stats.extra.noise_rms_amp
                     tr.stats.extra.weight = (
                         tr.stats.extra.weight * tr.stats.extra.noise_rms_amp /
-                        day_noise_rms_amp)
+                        cont_noise_rms_amp)
         weights = np.array([[tr.stats.extra.weight for tr in templ]
                             for templ in templates])
         # Normalize weights for each template so that CC sum stays smaller than
