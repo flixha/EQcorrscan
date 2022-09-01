@@ -490,11 +490,14 @@ class Template(object):
                 #     UTCDateTime(time_str, iso8601=True)
                 #     for time_str in value.value]
                 # UTCDateTime.strptime should be about 30 % quicker:
-                value.value = [
+                times = [
                     UTCDateTime.strptime(
                         date_string=time_str, format="%Y-%m-%dT%H:%M:%S.%fZ")
                     for time_str in value.value
                     if not isinstance(time_str, UTCDateTime)]
+                # When two templates have same name, stats may get here twice
+                if len(times) > 0:
+                    value.value = times
         # First check that stream has the right number of traces -
         # otherwise, we'll need to split the traces according to the
         # metadata. See https://github.com/eqcorrscan/EQcorrscan/issues/497
