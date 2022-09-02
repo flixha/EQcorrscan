@@ -704,9 +704,10 @@ def match_filter(template_names, template_list, st, threshold,
                         cont_noise_rms_amp = cont_trace_noise_dict[tr.id]
                     except KeyError:
                         cont_noise_rms_amp = tr.stats.extra.noise_rms_amp
+                    # Lower noise in continuous data vs templ --> higher weight
                     tr.stats.extra.weight = (
-                        tr.stats.extra.weight * tr.stats.extra.noise_rms_amp /
-                        cont_noise_rms_amp)
+                        tr.stats.extra.weight * np.sqrt(
+                            tr.stats.extra.noise_rms_amp / cont_noise_rms_amp))
         weights = np.array([[tr.stats.extra.weight for tr in templ]
                             for templ in templates])
         # Normalize weights for each template so that CC sum stays smaller than
