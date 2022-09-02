@@ -473,7 +473,9 @@ class Template(object):
                     if 'time' in key:
                         value.value = ast.literal_eval(value.value)
                     elif 'phase' in key:  # np cannot parse to string
-                        value.value = ast.literal_eval(value.value.strip("[]"))
+                        conv_string = value.value.strip("[]")
+                        if len(conv_string) > 0:  # otherwise eval fails
+                            value.value = ast.literal_eval(conv_string)
                     else:  # Nans cannot be properly parsed by literal_eval
                         value.value = np.fromstring(
                             value.value.strip("[]"), sep=",")
