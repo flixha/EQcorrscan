@@ -12,12 +12,13 @@ with data and output the detections.
     (https://www.gnu.org/copyleft/lesser.html)
 """
 import logging
+from os import cpu_count
 from re import A
 from timeit import default_timer
 
 import numpy as np
 from joblib import Parallel, delayed
-from obspy import Catalog, UTCDateTime, Stream
+from obspy import Catalog, UTCDateTime, Stream, Trace
 from obspy.core.util.attribdict import AttribDict
 
 from eqcorrscan.core.match_filter.helpers import (
@@ -393,6 +394,7 @@ def make_detections_from_peaks(
         plot_format=None, output_cat=False, output_event=False,
         parallel=False, cores=None):
     """
+    Internal function to make detections from cccsums and peaks in parallel.
     """
     detections = []
     det_cat = Catalog()
@@ -402,8 +404,21 @@ def make_detections_from_peaks(
     if parallel:
         if not plot:
             stream = Stream()  # To send less resources to workers
-        detection_cat_tuples = Parallel(n_jobs=cores)(delayed(
-            _make_detections_from_peaks)(
+        if not output_cat and not output_event:
+            templates = [Stream() for template in templates]  # To send less
+        else:
+            new_templates = []  # Just keep headers plus tiny part of data
+            for templ in templates:
+                new_template = Stream(
+                    [Trace(header=tr.stats, data=tr.data[:1]) for tr in templ])
+                new_templates.append(new_template)
+                templates = templates
+        if cores is None:
+            cores = cpu_count()
+        if cores > len(cccsums):
+            cores = len(cccsums)
+        detection_cat_tuples = Parallel(n_jobs=cores)(
+            delayed(_make_detections_from_peaks)(
                 cccsum, export_cccsums=export_cccsums, all_peaks=all_peaks[i],
                 chans=chans[i], no_chans=no_chans[i],
                 threshold_type=threshold_type, threshold=threshold,
@@ -442,7 +457,11 @@ def _make_detections_from_peaks(
         rawthresh=None, plot=False, plotdir='.',plot_format=None,
         output_cat=False, output_event=False):
     """
+    Internal function to loop through making detections for different
+    templates from cccsums and peaks.
     """
+    Logger.debug('Start making detections for template %s', template_name)
+    outtic = default_timer()
     detections = []
     det_cat = Catalog()
     if export_cccsums:
@@ -475,6 +494,9 @@ def _make_detections_from_peaks(
                 det_cat.append(detection.event)
     else:
         Logger.debug("Found 0 peaks for template {0}".format(template_name))
+    outtoc = default_timer()
+    Logger.debug('Detections making for template {0} took: {1:.4f}s'.format(
+        template_name, outtoc - outtic))
     return detections, det_cat
 
 
