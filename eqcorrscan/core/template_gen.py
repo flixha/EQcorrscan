@@ -818,8 +818,10 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
                         pick.waveform_id.channel_code))
             starttime = pick.time - prepick
             Logger.debug("Cutting {0}".format(tr.id))
-            noise_amp = _rms(
-                tr.slice(starttime=starttime - 100, endtime=starttime).data)
+            noise_data = tr.slice(
+                starttime=starttime - 100, endtime=starttime).data
+            noise_amp = _rms(noise_data)
+            noise_amp_median = np.median(np.abs(noise_data))
             if np.isnan(noise_amp):
                 continue
             earliest_station_pick_time = min(
@@ -827,9 +829,11 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
                 if p.waveform_id.station_code == pick.waveform_id.station_code]
                 )
             # Try to determine noise level before first arrival at station
-            pre_event_noise_amp = _rms(
-                tr.slice(starttime=earliest_station_pick_time - 300,
-                         endtime=earliest_station_pick_time).data)
+            pre_event_data = tr.slice(
+                starttime=earliest_station_pick_time - 300,
+                endtime=earliest_station_pick_time).data
+            pre_event_noise_amp = _rms(pre_event_data)
+            pre_event_noise_amp_median = np.median(np.abs(pre_event_data))
             tr_cut = tr.slice(
                 starttime=starttime, endtime=starttime + length,
                 nearest_sample=False).copy()
@@ -852,18 +856,23 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
                 (str(tr_cut.stats.starttime), str(tr_cut.stats.endtime)))
             peak_snr = max(tr_cut.data) / noise_amp
             signal_amp = _rms(tr_cut.data)
+            signal_amp_median = np.median(np.abs(tr_cut.data))
             # Prefer comparison against pre-event noise for rms_snr:
             if pre_event_noise_amp and not np.isnan(pre_event_noise_amp):
                 trace_noise_amp = pre_event_noise_amp
+                trace_noise_amp_median = pre_event_noise_amp_median
             elif noise_amp and not np.isnan(noise_amp):
                 trace_noise_amp = noise_amp
+                trace_noise_amp_median = noise_amp_median
             elif signal_amp and not np.isnan(signal_amp):
                 # TODO: if both noise windows become nan maybe there need to be
                 #       more checks?
                 trace_noise_amp = signal_amp
+                trace_noise_amp_median = signal_amp_median
             else:
                 continue
             rms_snr = signal_amp / trace_noise_amp
+            median_snr = signal_amp_median / trace_noise_amp_median
             if min_snr is not None and peak_snr < min_snr:
                 Logger.warning(
                     "Signal-to-noise ratio {0} below threshold for {1}.{2}, "
@@ -885,11 +894,17 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
             tr_cut.stats.extra.update(
                 {'rms_snr': rms_snr})
             tr_cut.stats.extra.update(
+                {'median_snr': median_snr})
+            tr_cut.stats.extra.update(
                 {'weight': weight})
             tr_cut.stats.extra.update(
                 {'noise_rms_amp': trace_noise_amp})
             tr_cut.stats.extra.update(
+                {'noise_median_amp': trace_noise_amp_median})
+            tr_cut.stats.extra.update(
                 {'signal_rms_amp': signal_amp})
+            tr_cut.stats.extra.update(
+                {'signal_median_amp': signal_amp_median})
             tr_cut.stats.extra.update(
                 {'signal_peak_amp': max(tr_cut.data)})
             tr_cut.stats.extra.update(
