@@ -486,7 +486,8 @@ class Tribe(object):
         for event in tribe_cat:
             event_found = False
             for comment in event.comments:
-                if comment.text.startswith('eqcorrscan_template_'):
+                if (comment.text is not None and
+                        comment.text.startswith('eqcorrscan_template_')):
                     template_name = comment.text.removeprefix(
                         'eqcorrscan_template_')
                     event_template_name_dict.update({template_name: event})
