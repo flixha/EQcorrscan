@@ -366,7 +366,7 @@ class TestEdgeGen(unittest.TestCase):
         self.assertFalse(template)
 
     def test_misc(self):
-        template = _template_gen(self.picks, self.st.copy(), 10)
+        template = _template_gen(self.picks, self.st.copy().detrend(), 10)
         self.assertEqual(len(template), len(self.picks))
 
     def test_extract_from_stack(self):
@@ -408,7 +408,7 @@ class TestEdgeGen(unittest.TestCase):
         picks = copy.deepcopy(self.picks)
         for pick in picks:
             setattr(pick, 'phase_hint', None)
-        template = _template_gen(picks, self.st.copy(), 10)
+        template = _template_gen(picks, self.st.copy().detrend(), 10)
         w = self.log_messages['warning']
         self.assertGreater(len(w), 0)
         self.assertEqual(len(template), 11)
@@ -441,8 +441,8 @@ class TestEdgeGen(unittest.TestCase):
             self.assertTrue(pick.waveform_id.station_code in used_stations)
 
     def test_swin_all_and_all_horiz(self):
-        template = _template_gen(self.picks, self.st.copy(), 10, swin='all',
-                                 all_horiz=True)
+        template = _template_gen(self.picks, self.st.copy().detrend(), 10,
+                                 swin='all', all_horiz=True)
         for pick in self.picks:
             if pick.phase_hint == 'S':
                 self.assertGreaterEqual(
@@ -450,11 +450,11 @@ class TestEdgeGen(unittest.TestCase):
                         station=pick.waveform_id.station_code)), 2)
 
     def test_snr_cutoff(self):
-        template = _template_gen(self.picks, self.st.copy(), 10, min_snr=100)
+        template = _template_gen(self.picks, self.st.copy().detrend(), 10, min_snr=100)
         self.assertEqual(len(template), 1)
 
     def test_no_data_for_channel(self):
-        st = self.st.copy()
+        st = self.st.copy().detrend()
         st.select(station='LABE', channel='SN')[0].stats.starttime += 2000
         template = _template_gen(self.picks, st, 10)
         self.assertEqual(len(template), 10)

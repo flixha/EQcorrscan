@@ -770,7 +770,8 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
                 else:
                     channel_pick = [
                         pick for pick in station_picks
-                        if pick.waveform_id.channel_code == tr.stats.channel]
+                        if (pick.waveform_id.channel_code[-1] ==
+                            tr.stats.channel[-1])]
                 if len(channel_pick) == 0:
                     continue
                 starttime.update({'picks': channel_pick})
@@ -779,8 +780,8 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
                           if pick.phase_hint.upper()[0] == 'P']
                 if not all_vert:
                     p_pick = [pick for pick in p_pick
-                              if pick.waveform_id.channel_code ==
-                              tr.stats.channel]
+                              if pick.waveform_id.channel_code[-1] ==
+                              tr.stats.channel[-1]]
                 if len(p_pick) == 0:
                     continue
                 starttime.update({'picks': p_pick})
@@ -822,8 +823,8 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
                 starttime=starttime - 100, endtime=starttime).data
             noise_amp = _rms(noise_data)
             noise_amp_median = np.median(np.abs(noise_data))
-            if np.isnan(noise_amp):
-                continue
+            # if np.isnan(noise_amp):
+            #     continue
             earliest_station_pick_time = min(
                 [p.time for stt in starttimes for p in stt['picks']
                 if p.waveform_id.station_code == pick.waveform_id.station_code]
@@ -848,8 +849,7 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
                         tr.stats.station, tr.stats.channel, starttime))
                 continue
             # Ensure that the template is the correct length
-            if len(tr_cut.data) == (tr_cut.stats.sampling_rate *
-                                    length) + 1:
+            if len(tr_cut.data) == (tr_cut.stats.sampling_rate * length) + 1:
                 tr_cut.data = tr_cut.data[0:-1]
             Logger.debug(
                 'Cut starttime = %s\nCut endtime %s' %
@@ -870,8 +870,17 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
                 trace_noise_amp = signal_amp
                 trace_noise_amp_median = signal_amp_median
             else:
+                Logger.warning(
+                    'Signal and/or noise amplitudes are nan, are there nans in'
+                    ' data or are all data negative (detrend!)?')
                 continue
             rms_snr = signal_amp / trace_noise_amp
+            # May need to skip when there are nans, but to keep behavior as in
+            # existing tests just set to Zero
+            if np.isnan(rms_snr):  
+                rms_snr = 0
+            if np.isnan(peak_snr):
+                peak_snr = 0
             median_snr = signal_amp_median / trace_noise_amp_median
             if min_snr is not None and peak_snr < min_snr:
                 Logger.warning(
