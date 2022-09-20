@@ -12,9 +12,11 @@ with data and output the detections.
     (https://www.gnu.org/copyleft/lesser.html)
 """
 import logging
+from re import A
 from timeit import default_timer
 
 import numpy as np
+from joblib import Parallel, delayed
 from obspy import Catalog, UTCDateTime, Stream
 from obspy.core.util.attribdict import AttribDict
 
@@ -26,6 +28,8 @@ from eqcorrscan.utils.findpeaks import multi_find_peaks
 from eqcorrscan.utils.pre_processing import (
     dayproc, shortproc, _prep_data_for_correlation)
 from eqcorrscan.core.template_gen import _rms
+from eqcorrscan.core.match_filter.detection import Detection
+from eqcorrscan.utils.plotting import _match_filter_plot
 
 Logger = logging.getLogger(__name__)
 
@@ -382,6 +386,98 @@ def _group_process(template_group, parallel, cores, stream, daylong,
     return processed_streams
 
 
+def make_detections_from_peaks(
+        cccsums, export_cccsums=False, all_peaks=[], chans=[], no_chans=[],
+        threshold_type=None, threshold=None, templates=[], template_names=[],
+        stream=Stream(), thresholds=[], plot=False, plotdir='.',
+        plot_format=None, output_cat=False, output_event=False,
+        parallel=False, cores=None):
+    """
+    """
+    detections = []
+    det_cat = Catalog()
+    starttime = stream[0].stats.starttime
+    endtime = stream[0].stats.endtime
+    sampling_rate = stream[0].stats.sampling_rate
+    if parallel:
+        if not plot:
+            stream = Stream()  # To send less resources to workers
+        detection_cat_tuples = Parallel(n_jobs=cores)(delayed(
+            _make_detections_from_peaks)(
+                cccsum, export_cccsums=export_cccsums, all_peaks=all_peaks[i],
+                chans=chans[i], no_chans=no_chans[i],
+                threshold_type=threshold_type, threshold=threshold,
+                template=templates[i], template_name=template_names[i],
+                stream=stream, starttime=starttime, endtime=endtime,
+                sampling_rate=sampling_rate, rawthresh=thresholds[i],
+                plot=plot, plotdir=plotdir, plot_format=plot_format,
+                output_cat=output_cat, output_event=output_event)
+            for i, cccsum in enumerate(cccsums))
+        for (detection_list, det_cats) in detection_cat_tuples:
+            detections += detection_list
+            if output_cat:
+                for cat in det_cats:
+                    det_cat += cat
+    else:
+        for i, cccsum in enumerate(cccsums):
+            template_detections, cat = _make_detections_from_peaks(
+                cccsum, export_cccsums=export_cccsums, all_peaks=all_peaks[i],
+                chans=chans[i], no_chans=no_chans[i],
+                threshold_type=threshold_type, threshold=threshold,
+                template=templates[i], template_name=template_names[i],
+                stream=stream, starttime=starttime, endtime=endtime,
+                sampling_rate=sampling_rate, rawthresh=thresholds[i],
+                plot=plot, plotdir=plotdir, plot_format=plot_format,
+                output_cat=output_cat, output_event=output_event)
+            detections += template_detections
+            if output_cat:
+                det_cat += cat
+    return detections, det_cat
+
+
+def _make_detections_from_peaks(
+        cccsum, export_cccsums=False, all_peaks=False, chans=[], no_chans=None,
+        threshold_type=None, threshold=None, template=None, template_name=None,
+        stream=Stream(), starttime=None, endtime=None, sampling_rate=None,
+        rawthresh=None, plot=False, plotdir='.',plot_format=None,
+        output_cat=False, output_event=False):
+    """
+    """
+    detections = []
+    det_cat = Catalog()
+    if export_cccsums:
+        fname = (f"{template_name}-{starttime}-{endtime}_cccsum.npy")
+        np.save(file=fname, arr=cccsum)
+        Logger.info(f"Saved correlation statistic to {fname}")
+    if np.abs(np.mean(cccsum)) > 0.05:
+        Logger.warning('Mean is not zero!  Check this!')
+    # Set up a trace object for the cccsum as this is easier to plot and
+    # maintains timing
+    if plot:
+        _match_filter_plot(
+            stream=stream, cccsum=cccsum, template_names=[template_name],
+            rawthresh=rawthresh, plotdir=plotdir,
+            plot_format=plot_format, i=0)
+    if all_peaks:
+        Logger.debug("Found {0} peaks for template {1}".format(
+            len(all_peaks), template_name))
+        for peak in all_peaks:
+            detecttime = (starttime + peak[1] / sampling_rate)
+            detection = Detection(
+                template_name=template_name, detect_time=detecttime,
+                no_chans=no_chans, detect_val=peak[0],
+                threshold=rawthresh, typeofdet='corr', chans=chans,
+                threshold_type=threshold_type, threshold_input=threshold)
+            if output_cat or output_event:
+                detection._calculate_event(template_st=template)
+            detections.append(detection)
+            if output_cat:
+                det_cat.append(detection.event)
+    else:
+        Logger.debug("Found 0 peaks for template {0}".format(template_name))
+    return detections, det_cat
+
+
 def match_filter(template_names, template_list, st, threshold,
                  threshold_type, trig_int, plot=False, plotdir=None,
                  xcorr_func=None, concurrency=None, cores=None,
@@ -686,6 +782,9 @@ def match_filter(template_names, template_list, st, threshold,
     weights = None
     if use_weights:
         if weight_current_noise_level:
+            # TODO: change this to use MEDIAN average deviation amplitude of
+            #       noise rather than rms noise amplitude. Should be more
+            #       robust for traces with a lot of events / spikes etc
             Logger.info('Updating trace weights according to noise level in '
                         'continuous data')
             cont_trace_noise_dict = {}
@@ -757,41 +856,53 @@ def match_filter(template_names, template_list, st, threshold,
         full_peaks=full_peaks, cores=peak_cores)
     outtoc = default_timer()
     Logger.info("Finding peaks took {0:.4f}s".format(outtoc - outtic))
-    for i, cccsum in enumerate(cccsums):
-        if export_cccsums:
-            fname = (f"{_template_names[i]}-{stream[0].stats.starttime}-"
-                     f"{stream[0].stats.endtime}_cccsum.npy")
-            np.save(file=fname, arr=cccsum)
-            Logger.info(f"Saved correlation statistic to {fname}")
-        if np.abs(np.mean(cccsum)) > 0.05:
-            Logger.warning('Mean is not zero!  Check this!')
-        # Set up a trace object for the cccsum as this is easier to plot and
-        # maintains timing
-        if plot:
-            _match_filter_plot(
-                stream=stream, cccsum=cccsum, template_names=_template_names,
-                rawthresh=thresholds[i], plotdir=plotdir,
-                plot_format=plot_format, i=i)
-        if all_peaks[i]:
-            Logger.debug("Found {0} peaks for template {1}".format(
-                len(all_peaks[i]), _template_names[i]))
-            for peak in all_peaks[i]:
-                detecttime = (
-                    stream[0].stats.starttime +
-                    peak[1] / stream[0].stats.sampling_rate)
-                detection = Detection(
-                    template_name=_template_names[i], detect_time=detecttime,
-                    no_chans=no_chans[i], detect_val=peak[0],
-                    threshold=thresholds[i], typeofdet='corr', chans=chans[i],
-                    threshold_type=threshold_type, threshold_input=threshold)
-                if output_cat or output_event:
-                    detection._calculate_event(template_st=templates[i])
-                detections.append(detection)
-                if output_cat:
-                    det_cat.append(detection.event)
-        else:
-            Logger.debug("Found 0 peaks for template {0}".format(
-                _template_names[i]))
+
+    detections, det_cat = make_detections_from_peaks(
+        cccsums=cccsums, export_cccsums=export_cccsums, all_peaks=all_peaks,
+        chans=chans, no_chans=no_chans, threshold_type=threshold_type,
+        threshold=threshold, templates=templates,
+        template_names=_template_names, stream=stream, thresholds=thresholds,
+        plot=plot, plotdir=plotdir, plot_format=plot_format,
+        output_cat=output_cat, output_event=output_event,
+        parallel=parallel, cores=cores)
+
+    # for i, cccsum in enumerate(cccsums):
+    #     if export_cccsums:
+    #         fname = (f"{_template_names[i]}-{stream[0].stats.starttime}-"
+    #                  f"{stream[0].stats.endtime}_cccsum.npy")
+    #         np.save(file=fname, arr=cccsum)
+    #         Logger.info(f"Saved correlation statistic to {fname}")
+    #     if np.abs(np.mean(cccsum)) > 0.05:
+    #         Logger.warning('Mean is not zero!  Check this!')
+    #     # Set up a trace object for the cccsum as this is easier to plot and
+    #     # maintains timing
+    #     if plot:
+    #         _match_filter_plot(
+    #             stream=stream, cccsum=cccsum, template_names=_template_names,
+    #             rawthresh=thresholds[i], plotdir=plotdir,
+    #             plot_format=plot_format, i=i)
+    #     if all_peaks[i]:
+    #         Logger.debug("Found {0} peaks for template {1}".format(
+    #             len(all_peaks[i]), _template_names[i]))
+    #         for peak in all_peaks[i]:
+    #             detecttime = (
+    #                 stream[0].stats.starttime +
+    #                 peak[1] / stream[0].stats.sampling_rate)
+    #             detection = Detection(
+    #                 template_name=_template_names[i], detect_time=detecttime,
+    #                 no_chans=no_chans[i], detect_val=peak[0],
+    #                 threshold=thresholds[i], typeofdet='corr', chans=chans[i],
+    #                 threshold_type=threshold_type, threshold_input=threshold)
+    #             if output_cat or output_event:
+    #                 detection._calculate_event(template_st=templates[i])
+    #             detections.append(detection)
+    #             if output_cat:
+    #                 det_cat.append(detection.event)
+    #     else:
+    #         Logger.debug("Found 0 peaks for template {0}".format(
+    #             _template_names[i]))
+
+
     Logger.info("Made {0} detections from {1} templates".format(
         len(detections), len(templates)))
     if extract_detections:
