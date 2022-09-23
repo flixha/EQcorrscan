@@ -239,10 +239,11 @@ def _group_detect(templates, stream, threshold, threshold_type, trig_int,
                 family = Family(template=template, detections=[])
                 for detection in detections:
                     if detection.template_name == template.name:
-                        for pick in detection.event.picks:
-                            pick.time += template.prepick
-                        for origin in detection.event.origins:
-                            origin.time += template.prepick
+                        if detection.event:
+                            for pick in detection.event.picks:
+                                pick.time += template.prepick
+                            for origin in detection.event.origins:
+                                origin.time += template.prepick
                         family.detections.append(detection)
                 party += family
     return party
