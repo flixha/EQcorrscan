@@ -21,11 +21,41 @@ from obspy import Catalog, UTCDateTime, Stream
 from obspy.core.event import (
     Comment, WaveformStreamID, Event, Pick, CreationInfo, ResourceIdentifier,
     Origin)
+from obspy.core.util import AttribDict
 
 from eqcorrscan.core.match_filter.helpers import _test_event_similarity
 from eqcorrscan.utils.pre_processing import _stream_quick_select
 
 Logger = logging.getLogger(__name__)
+
+
+class SparsePick(object):
+    def __init__(self, time, waveform_id, phase_hint=None):
+        self.resource_id = ResourceIdentifier()
+        self.time = time
+        self.phase_hint = phase_hint
+        self.waveform_id = waveform_id
+        self.time_errors = None
+        self.filter_id = None
+        self.method_id = None
+        self.horizontal_slowness = None
+        self.horizontal_slowness_errors = None
+        self.backazimuth = None
+        self.backazimuth_errors = None
+        self.slowness_method_id = None
+        self.onset = None
+        self.polarity = None
+        self.evaluation_mode = None
+        self.evaluation_status = None
+        self.comments = []
+        self.creation_info = None
+
+    def __repr__(self):
+        return ("SparsePick(seed_id={0}, phase_hint={1}, time={2})".format(
+            self.waveform_id.id, self.phase_hint, self.time))
+
+    def keys():
+        return AttribDict()
 
 
 class Detection(object):
@@ -204,7 +234,8 @@ class Detection(object):
             _f.write(self._print_str() + '\n')
 
     def _calculate_event(self, template=None, template_st=None,
-                         estimate_origin=True, correct_prepick=True):
+                         estimate_origin=True, correct_prepick=True,
+                         use_simplified_origin=False, **kwargs):
         """
         Calculate an event for this detection using a given template.
 
@@ -277,7 +308,7 @@ class Detection(object):
                 pick_time = self.detect_time + (
                     tr.stats.starttime - min_template_tm)
                 pick_time += template_prepick
-                new_pick = Pick(
+                new_pick = SparsePick(
                     time=pick_time, waveform_id=WaveformStreamID(
                         network_code=tr.stats.network,
                         station_code=tr.stats.station,
@@ -327,32 +358,45 @@ class Detection(object):
                 origin_time = pick.time - (
                         comparison_pick[0].time - template_origin.time)
                 # Calculate based on difference between pick and origin?
-                _origin = Origin(ResourceIdentifier(
-                    id="EQcorrscan/{0}_{1}".format(
-                        self.template_name, det_time), prefix="smi:local"),
-                    time=origin_time, evaluation_mode="automatic",
-                    evaluation_status="preliminary",
-                    creation_info=CreationInfo(
-                        author='EQcorrscan', creation_time=UTCDateTime()),
-                    comments=[Comment(
-                        text="Origin automatically assigned based on template"
-                             " origin: use with caution.")],
-                    latitude=template_origin.latitude,
-                    longitude=template_origin.longitude,
-                    depth=template_origin.depth,
-                    time_errors=template_origin.time_errors,
-                    latitude_errors=template_origin.latitude_errors,
-                    longitude_errors=template_origin.longitude_errors,
-                    depth_errors=template_origin.depth_errors,
-                    depth_type=template_origin.depth_type,
-                    time_fixed=False,
-                    epicenter_fixed=template_origin.epicenter_fixed,
-                    reference_system_id=template_origin.reference_system_id,
-                    method_id=template_origin.method_id,
-                    earth_model_id=template_origin.earth_model_id,
-                    origin_type=template_origin.origin_type,
-                    origin_uncertainty=template_origin.origin_uncertainty,
-                    region=template_origin.region)
+                if use_simplified_origin:
+                    _origin = Origin(ResourceIdentifier(
+                        id="EQcorrscan/{0}_{1}".format(
+                            self.template_name, det_time), prefix="smi:local"),
+                        time=origin_time, evaluation_mode="automatic",
+                        creation_info=CreationInfo(
+                            author='EQcorrscan', creation_time=UTCDateTime()),
+                        latitude=template_origin.latitude,
+                        longitude=template_origin.longitude,
+                        depth=template_origin.depth,
+                        time_errors=template_origin.time_errors)
+                else:
+                    _origin = Origin(ResourceIdentifier(
+                        id="EQcorrscan/{0}_{1}".format(
+                            self.template_name, det_time), prefix="smi:local"),
+                        time=origin_time, evaluation_mode="automatic",
+                        evaluation_status="preliminary",
+                        creation_info=CreationInfo(
+                            author='EQcorrscan', creation_time=UTCDateTime()),
+                        comments=[Comment(
+                            text="Origin automatically assigned based on "
+                                 "template origin: use with caution.")],
+                        latitude=template_origin.latitude,
+                        longitude=template_origin.longitude,
+                        depth=template_origin.depth,
+                        time_errors=template_origin.time_errors,
+                        latitude_errors=template_origin.latitude_errors,
+                        longitude_errors=template_origin.longitude_errors,
+                        depth_errors=template_origin.depth_errors,
+                        depth_type=template_origin.depth_type,
+                        time_fixed=False,
+                        epicenter_fixed=template_origin.epicenter_fixed,
+                        reference_system_id=
+                        template_origin.reference_system_id,
+                        method_id=template_origin.method_id,
+                        earth_model_id=template_origin.earth_model_id,
+                        origin_type=template_origin.origin_type,
+                        origin_uncertainty=template_origin.origin_uncertainty,
+                        region=template_origin.region)
                 ev.origins = [_origin]
         self.event = ev
         return self

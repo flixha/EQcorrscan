@@ -674,7 +674,8 @@ class Tribe(object):
                xcorr_func=None, concurrency=None, cores=None,
                ignore_length=False, ignore_bad_data=False, group_size=None,
                overlap="calculate", full_peaks=False, save_progress=False,
-               process_cores=None, pre_processed=False, **kwargs):
+               process_cores=None, pre_processed=False, output_event=True,
+               **kwargs):
         """
         Detect using a Tribe of templates within a continuous stream.
 
@@ -845,14 +846,32 @@ class Tribe(object):
                 xcorr_func=xcorr_func, concurrency=concurrency, cores=cores,
                 ignore_length=ignore_length, overlap=overlap, plotdir=plotdir,
                 full_peaks=full_peaks, process_cores=process_cores,
-                ignore_bad_data=ignore_bad_data, arg_check=False, **kwargs)
+                ignore_bad_data=ignore_bad_data, arg_check=False,
+                output_event=output_event, output_cat=False, **kwargs)
             party += group_party
             if save_progress:
                 party.write("eqcorrscan_temporary_party")
         if len(party) > 0:
             for family in party:
                 if family is not None:
-                    family.detections = family._uniq().detections
+                    # Slow uniq:
+                    # family.detections = family._uniq().detections
+
+                    # quicker uniq:
+                    uniq_det_tuples = set(
+                        [(det.id, str(det.detect_time), det.detect_val)
+                         for det in family])
+                    uniq_detections = []
+                    for det_tuple in uniq_det_tuples:
+                        udet = None
+                        for det in family:
+                            if (det.id == det_tuple[0] and
+                                str(det.detect_time) == det_tuple[1] and
+                                det.detect_val == det_tuple[2]):
+                                udet = det
+                                break
+                        uniq_detections.append(udet)
+                    family.detections = uniq_detections
         return party
 
     def client_detect(self, client, starttime, endtime, threshold,

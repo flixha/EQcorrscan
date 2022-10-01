@@ -132,6 +132,8 @@ def _test_event_similarity(event_1, event_2, verbose=False, shallow=False):
 
     :return: bool
     """
+    from eqcorrscan.core.match_filter.detection import SparsePick
+
     if not isinstance(event_1, Event) or not isinstance(event_2, Event):
         raise NotImplementedError('Cannot compare things that are not Events')
     # Check origins
@@ -181,6 +183,17 @@ def _test_event_similarity(event_1, event_2, verbose=False, shallow=False):
     event_1.picks.sort(key=lambda p: p.time)
     event_2.picks.sort(key=lambda p: p.time)
     for pick_1, pick_2 in zip(event_1.picks, event_2.picks):
+        if isinstance(pick_1, SparsePick) or isinstance(pick_2, SparsePick):
+            if pick_1.waveform_id != pick_2.waveform_id:
+                print('SparsePick - waveform id differs')
+                return False
+            if pick_1.phase_hint != pick_2.phase_hint:
+                print('SparsePick - phase hint differs')
+                return False
+            if pick_1.time != pick_2.time:
+                print('SparsePick - time differs')
+                return False
+            continue
         for key in pick_1.keys():
             if shallow and not hasattr(pick_2, key):
                 continue

@@ -393,7 +393,7 @@ def make_detections_from_peaks(
         threshold_type=None, threshold=None, templates=[], template_names=[],
         stream=Stream(), thresholds=[], plot=False, plotdir='.',
         plot_format=None, output_cat=False, output_event=False,
-        parallel=False, cores=None):
+        parallel=False, cores=None, **kwargs):
     """
     Internal function to make detections from cccsums and peaks in parallel.
     """
@@ -427,7 +427,7 @@ def make_detections_from_peaks(
                 stream=stream, starttime=starttime, endtime=endtime,
                 sampling_rate=sampling_rate, rawthresh=thresholds[i],
                 plot=plot, plotdir=plotdir, plot_format=plot_format,
-                output_cat=output_cat, output_event=output_event)
+                output_cat=output_cat, output_event=output_event, **kwargs)
             for i, cccsum in enumerate(cccsums))
         for (detection_list, det_cats) in detection_cat_tuples:
             detections += detection_list
@@ -444,7 +444,7 @@ def make_detections_from_peaks(
                 stream=stream, starttime=starttime, endtime=endtime,
                 sampling_rate=sampling_rate, rawthresh=thresholds[i],
                 plot=plot, plotdir=plotdir, plot_format=plot_format,
-                output_cat=output_cat, output_event=output_event)
+                output_cat=output_cat, output_event=output_event, **kwargs)
             detections += template_detections
             if output_cat:
                 det_cat += cat
@@ -456,7 +456,7 @@ def _make_detections_from_peaks(
         threshold_type=None, threshold=None, template=None, template_name=None,
         stream=Stream(), starttime=None, endtime=None, sampling_rate=None,
         rawthresh=None, plot=False, plotdir='.',plot_format=None,
-        output_cat=False, output_event=False):
+        output_cat=False, output_event=False, **kwargs):
     """
     Internal function to loop through making detections for different
     templates from cccsums and peaks.
@@ -489,10 +489,10 @@ def _make_detections_from_peaks(
                 threshold=rawthresh, typeofdet='corr', chans=chans,
                 threshold_type=threshold_type, threshold_input=threshold)
             if output_cat or output_event:
-                detection._calculate_event(template_st=template)
+               detection._calculate_event(template_st=template, **kwargs)
             detections.append(detection)
             if output_cat:
-                det_cat.append(detection.event)
+               det_cat.append(detection.event)
     else:
         Logger.debug("Found 0 peaks for template {0}".format(template_name))
     outtoc = default_timer()
@@ -887,7 +887,7 @@ def match_filter(template_names, template_list, st, threshold,
         template_names=_template_names, stream=stream, thresholds=thresholds,
         plot=plot, plotdir=plotdir, plot_format=plot_format,
         output_cat=output_cat, output_event=output_event,
-        parallel=parallel, cores=cores)
+        parallel=parallel, cores=cores, **kwargs)
 
     # for i, cccsum in enumerate(cccsums):
     #     if export_cccsums:
