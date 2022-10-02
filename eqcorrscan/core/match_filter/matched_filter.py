@@ -418,6 +418,7 @@ def make_detections_from_peaks(
             cores = cpu_count()
         if cores > len(cccsums):
             cores = len(cccsums)
+        Logger.info('Make detections from peaks in parallel')
         detection_cat_tuples = Parallel(n_jobs=cores)(
             delayed(_make_detections_from_peaks)(
                 cccsum, export_cccsums=export_cccsums, all_peaks=all_peaks[i],
@@ -429,6 +430,7 @@ def make_detections_from_peaks(
                 plot=plot, plotdir=plotdir, plot_format=plot_format,
                 output_cat=output_cat, output_event=output_event, **kwargs)
             for i, cccsum in enumerate(cccsums))
+        Logger.info('Aggregating detections from parallel workers')
         for (detection_list, det_cats) in detection_cat_tuples:
             detections += detection_list
             if output_cat:
@@ -887,7 +889,7 @@ def match_filter(template_names, template_list, st, threshold,
         template_names=_template_names, stream=stream, thresholds=thresholds,
         plot=plot, plotdir=plotdir, plot_format=plot_format,
         output_cat=output_cat, output_event=output_event,
-        parallel=parallel, cores=cores, **kwargs)
+        parallel=False, cores=cores, **kwargs)
 
     # for i, cccsum in enumerate(cccsums):
     #     if export_cccsums:

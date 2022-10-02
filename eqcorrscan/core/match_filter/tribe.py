@@ -852,6 +852,7 @@ class Tribe(object):
             if save_progress:
                 party.write("eqcorrscan_temporary_party")
         if len(party) > 0:
+            Logger.info('Retrieving unique detections')
             for family in party:
                 if family is not None:
                     # Slow uniq:
