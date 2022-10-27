@@ -16,6 +16,12 @@ try:
 except ImportError:
     FMF_INSTALLED = False
 
+try:
+    import fmf2
+    FMF2_INSTALLED = True
+except ImportError:
+    FMF2_INSTALLED = False
+
 
 __all__ = ['archive_read', 'catalog_to_dd', 'catalog_utils', 'clustering',
            'correlate', 'despike', 'findpeaks', 'mag_calc', 'picker',
