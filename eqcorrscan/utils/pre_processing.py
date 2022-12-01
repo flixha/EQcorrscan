@@ -951,7 +951,7 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
             'network': net, 'station': sta, 'location': loc,
             'channel': chan, 'starttime': UTCDateTime(ns=0),
             'npts': template_length, 'sampling_rate': samp_rate,
-            'extra': _init_extra_attrib_dict()}))
+            'extra': _init_extra_attrib_dict_light()}))
 
     # Remove templates with no matching channels
     filt = np.ones(len(template_names)).astype(bool)
