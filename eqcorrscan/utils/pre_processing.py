@@ -807,8 +807,11 @@ def _quick_copy_trace(trace):
         if key == 'stats':
             new_stats = Stats()
             for key_2, value_2 in value.__dict__.items():
-                new_stats.__dict__[key_2] = value_2
-                new_trace.__dict__[key] = new_stats
+                if isinstance(value_2, UTCDateTime):
+                    new_stats.__dict__[key_2] = UTCDateTime(ns=value_2.ns)
+                else:
+                    new_stats.__dict__[key_2] = value_2  # copy.deepcopy(value_2)
+            new_trace.__dict__[key] = new_stats
         else:  # data needs to be deepcopied (and anything else, to be safe)
             new_trace.__dict__[key] = copy.deepcopy(value)
     return new_trace
@@ -833,7 +836,7 @@ def _quick_copy_stream(stream):
         new_traces.append(_quick_copy_trace(trace))
     return Stream(new_traces)
 
-
+# @profile
 def _prep_data_for_correlation(stream, templates, template_names=None,
                                force_stream_epoch=True):
     """
@@ -945,7 +948,7 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
         net, sta, loc, chan = _seed_id[0].split('.')
         nan_template += Trace(header=Stats({
             'network': net, 'station': sta, 'location': loc,
-            'channel': chan, # 'starttime': UTCDateTime(),
+            'channel': chan, 'starttime': UTCDateTime(ns=0),
             'npts': template_length, 'sampling_rate': samp_rate,
             'extra': _init_extra_attrib_dict()}))
 
@@ -981,8 +984,8 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
                 net, sta, loc, chan = earliest_templ_trace_id.split('.')
                 nan_template += Trace(header=Stats({
                     'network': net, 'station': sta, 'location': loc,
-                    'channel': chan,
-                    # 'starttime': UTCDateTime(), 'npts': template_length,
+                    'channel': chan, 'starttime': UTCDateTime(ns=0),
+                    # 'npts': template_length,
                     'sampling_rate': samp_rate,
                     'extra': _init_extra_attrib_dict_light()}))
                 stream_nan_data = np.full(
@@ -1027,7 +1030,8 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
             stream_trace_id_dict
             if len(template_channel) <= channel_index:
                 # out_template[channel_number].data = nan_channel  # quicker:
-                out_template[channel_number].__dict__['data'] = nan_channel
+                out_template[channel_number].__dict__['data'] = copy.deepcopy(
+                    nan_channel)
                 out_template[channel_number].__dict__['npts'] = template_length
                 # out_template[channel_number].stats.starttime = \
                 #    template_starttime
