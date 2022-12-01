@@ -1029,9 +1029,9 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
                 template.traces[idx] for idx in stream_trace_id_dict[seed_id]])
             stream_trace_id_dict
             if len(template_channel) <= channel_index:
-                # out_template[channel_number].data = nan_channel  # quicker:
-                out_template[channel_number].__dict__['data'] = copy.deepcopy(
-                    nan_channel)
+                out_template[channel_number].data = nan_channel  # quicker:
+                # out_template[channel_number].__dict__['data'] = copy.deepcopy(
+                #     nan_channel)  # This crashed with memory Error in sycl / ValueError in fmf
                 out_template[channel_number].__dict__['npts'] = template_length
                 # out_template[channel_number].stats.starttime = \
                 #    template_starttime
