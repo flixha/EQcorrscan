@@ -13,8 +13,9 @@ import numpy as np
 import logging
 import datetime as dt
 from timeit import default_timer
+import copy
 
-from collections import Counter
+from collections import Counter, defaultdict
 from joblib import Parallel, delayed
 from multiprocessing import Pool, cpu_count
 
@@ -441,6 +442,14 @@ def _init_extra_attrib_dict():
                        'signal_peak_amp': 1})
 
 
+def _init_extra_attrib_dict_light():
+    """
+    Return an extra-stats AttributeDict for empty template channels, with only
+    weight set to Zero for slight speedup for 10 % speedup in header creation.
+    """
+    return AttribDict({'weight': 0})
+
+
 def process(tr, lowcut, highcut, filt_order, samp_rate,
             starttime=False, clip=False, length=86400,
             seisan_chan_names=False, ignore_length=False, fill_gaps=True,
@@ -787,6 +796,44 @@ def _stream_quick_select(stream, seed_id):
     return stream
 
 
+def _quick_copy_trace(trace):
+    """
+    Function to quickly copy a trace. Sets values in the traces' and trace
+    header's dict directly, circumventing obspy's init functions.
+    Speedup: from 37 us to 11 us per trace - 3.36x faster
+    """
+    new_trace = Trace()
+    for key, value in trace.__dict__.items():
+        if key == 'stats':
+            new_stats = Stats()
+            for key_2, value_2 in value.__dict__.items():
+                new_stats.__dict__[key_2] = value_2
+                new_trace.__dict__[key] = new_stats
+        else:  # data needs to be deepcopied (and anything else, to be safe)
+            new_trace.__dict__[key] = copy.deepcopy(value)
+    return new_trace
+
+
+def _quick_copy_stream(stream):
+    """
+    Function to quickly copy a stream that consists only of empty data traces.
+    Speedup: from 112 us to 35 us per 3-trace stream - 3.2x faster
+
+    This is what takes longest (1 empty trace, total time to copy 27 us):
+    copy header: 18 us (vs create new empty header: 683 ns)
+
+    Two points that can speed up copying / creation:
+        1. circumvent trace.__init__ and trace.__set_attr__ by setting value
+           directly in trace's __dict__
+        2. when setting trace header, circumvent that Stats(header) is called
+           when header is already a Stats instance
+    """
+    new_traces = list()
+    for trace in stream:
+        new_traces.append(_quick_copy_trace(trace))
+    return Stream(new_traces)
+
+
 def _prep_data_for_correlation(stream, templates, template_names=None,
                                force_stream_epoch=True):
     """
@@ -898,7 +945,7 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
         net, sta, loc, chan = _seed_id[0].split('.')
         nan_template += Trace(header=Stats({
             'network': net, 'station': sta, 'location': loc,
-            'channel': chan, 'starttime': UTCDateTime(),
+            'channel': chan, # 'starttime': UTCDateTime(),
             'npts': template_length, 'sampling_rate': samp_rate,
             'extra': _init_extra_attrib_dict()}))
 
@@ -934,9 +981,10 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
                 net, sta, loc, chan = earliest_templ_trace_id.split('.')
                 nan_template += Trace(header=Stats({
                     'network': net, 'station': sta, 'location': loc,
-                    'channel': chan, 'starttime': UTCDateTime(),
-                    'npts': template_length, 'sampling_rate': samp_rate,
-                    'extra': _init_extra_attrib_dict()}))
+                    'channel': chan,
+                    # 'starttime': UTCDateTime(), 'npts': template_length,
+                    'sampling_rate': samp_rate,
+                    'extra': _init_extra_attrib_dict_light()}))
                 stream_nan_data = np.full(
                     stream_length, np.nan, dtype=np.float32)
                 out_stream += Trace(
@@ -945,7 +993,8 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
                         'network': net, 'station': sta, 'location': loc,
                         'channel': chan, 'starttime': stream_start,
                         'npts': stream_length, 'sampling_rate': samp_rate,
-                        'extra': _init_extra_attrib_dict()}))
+                        # 'extra': _init_extra_attrib_dict()
+                        }))
                 seed_ids.append((earliest_templ_trace_id, 0))
 
     incomplete_templates = {
@@ -956,16 +1005,33 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
     for template_name in incomplete_templates:
         template = _out[template_name]
         template_starttime = min(tr.stats.starttime for tr in template)
-        out_template = nan_template.copy()
+        # out_template = nan_template.copy()
+        out_template = _quick_copy_stream(nan_template)
+
+        # Select traces very quickly: assume that trace order does not change,
+        # make dict of trace-ids and list of indices and use indices to select
+        stream_trace_id_dict = defaultdict(list)
+        for n, tr in enumerate(template.traces):
+            stream_trace_id_dict[tr.id].append(n)
+
         for channel_number, _seed_id in enumerate(seed_ids):
             seed_id, channel_index = _seed_id
             # template_channel = template.select(id=seed_id)
             # Quickest way to select traces - use instead of st.select because
             # this line is called very often.
-            template_channel = _stream_quick_select(template, seed_id)
+            # template_channel = _stream_quick_select(template, seed_id)
+            # Select all traces with same seed_id, based on indices for
+            # corresponding traces stored in stream_trace_id_dict
+            template_channel = Stream([
+                template.traces[idx] for idx in stream_trace_id_dict[seed_id]])
+            stream_trace_id_dict
             if len(template_channel) <= channel_index:
-                out_template[channel_number].data = nan_channel
-                out_template[channel_number].stats.starttime = \
+                # out_template[channel_number].data = nan_channel  # quicker:
+                out_template[channel_number].__dict__['data'] = nan_channel
+                out_template[channel_number].__dict__['npts'] = template_length
+                # out_template[channel_number].stats.starttime = \
+                #    template_starttime
+                out_template[channel_number].__dict__['starttime'] = \
                     template_starttime
             else:
                 out_template[channel_number] = template_channel[channel_index]
