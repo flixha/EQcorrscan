@@ -444,7 +444,7 @@ class Detection(object):
                 Logger.info("No pick for {0}.{1}".format(station, channel))
                 continue
             elif len(pick) > 1:
-                Logger.info(
+                Logger.debug(
                     "Multiple picks found for {0}.{1}, using earliest".format(
                         station, channel))
                 pick.sort(key=lambda p: p.time)
