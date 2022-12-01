@@ -943,6 +943,7 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
 
     # Initialize nan template for speed.
     nan_channel = np.full(template_length, np.nan, dtype=np.float32)
+    nan_channel = np.require(nan_channel, requirements=['C_CONTIGUOUS'])
     nan_template = Stream()
     for _seed_id in seed_ids:
         net, sta, loc, chan = _seed_id[0].split('.')
@@ -1029,9 +1030,10 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
                 template.traces[idx] for idx in stream_trace_id_dict[seed_id]])
             stream_trace_id_dict
             if len(template_channel) <= channel_index:
-                out_template[channel_number].data = nan_channel  # quicker:
-                # out_template[channel_number].__dict__['data'] = copy.deepcopy(
-                #     nan_channel)  # This crashed with memory Error in sycl / ValueError in fmf
+                # out_template[channel_number].data = nan_channel  # quicker:
+                out_template[channel_number].__dict__['data'] = np.require(
+                    copy.deepcopy(nan_channel), requirements=['C_CONTIGUOUS'])
+                    # This crashed with memory Error in sycl / ValueError in fmf
                 out_template[channel_number].__dict__['npts'] = template_length
                 # out_template[channel_number].stats.starttime = \
                 #    template_starttime
