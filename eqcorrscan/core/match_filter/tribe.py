@@ -502,7 +502,10 @@ class Tribe(object):
             if template.name in previous_template_names:
                 # Don't read in for templates that we already have.
                 continue
-            template.event = event_template_name_dict[template.name]
+            try:
+                template.event = event_template_name_dict[template.name]
+            except KeyError:
+                Logger.warn('No event for template %s in tribe', template.name)
         for template in templates:
             template.st = template_streams.get(template.name, None)
             if not template.st:
