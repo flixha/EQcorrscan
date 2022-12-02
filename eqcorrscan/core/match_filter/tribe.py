@@ -15,6 +15,7 @@ import copy
 import getpass
 import glob
 import os
+import ast
 import shutil
 import tarfile
 import tempfile
@@ -480,6 +481,7 @@ class Tribe(object):
             template_streams = {
                 key: read(value) for key, value in t_files_dict.items()
                 if key in template_names}
+
         Logger.info("Reconstructing tribe")
         # Fill dictionary with template.names and events for quick retrieval
         event_template_name_dict = {}
