@@ -811,6 +811,8 @@ def _quick_copy_trace(trace):
                     new_stats.__dict__[key_2] = UTCDateTime(ns=value_2.ns)
                 else:
                     new_stats.__dict__[key_2] = value_2  # copy.deepcopy(value_2)
+            # This can not yet handle copy of complex stats like response
+            # instance etc.
             new_trace.__dict__[key] = new_stats
         else:  # data needs to be deepcopied (and anything else, to be safe)
             new_trace.__dict__[key] = copy.deepcopy(value)
