@@ -442,19 +442,6 @@ def _prepare_data(family, detect_data, shift_len, all_vert=False,
     assert len(lengths) == 1, "Template contains channels of different length"
     # Stream needs to start early enough to take prepick and shift_len into
     # account
-    prepick = 0
-    if family.template.event and family.template.event.picks:
-        prepick = np.max(
-            [pk.time -
-             # family.template.st.select(id=pk.waveform_id.id)[0].stats.starttime
-             _stream_quick_select(
-                 family.template.st, pk.waveform_id.id)[0].stats.starttime
-             for pk in family.template.event.picks
-             # if len(family.template.st.select(id=pk.waveform_id.id)) == 1]
-             if len(_stream_quick_select(
-                    family.template.st, pk.waveform_id.id)) == 1])
-    stream_prepick = prepick + shift_len
-    # stream_prepick = shift_len
     length = lengths.pop() + (2 * shift_len)
     # Enforce length be an integer number of samples
     length_samples = length * family.template.samp_rate

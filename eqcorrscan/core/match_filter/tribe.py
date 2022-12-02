@@ -15,6 +15,7 @@ import copy
 import getpass
 import glob
 import os
+import ast
 import shutil
 import tarfile
 import tempfile
@@ -480,6 +481,7 @@ class Tribe(object):
             template_streams = {
                 key: read(value) for key, value in t_files_dict.items()
                 if key in template_names}
+
         Logger.info("Reconstructing tribe")
         # Fill dictionary with template.names and events for quick retrieval
         event_template_name_dict = {}
@@ -500,7 +502,10 @@ class Tribe(object):
             if template.name in previous_template_names:
                 # Don't read in for templates that we already have.
                 continue
-            template.event = event_template_name_dict[template.name]
+            try:
+                template.event = event_template_name_dict[template.name]
+            except KeyError:
+                Logger.warn('No event for template %s in tribe', template.name)
         for template in templates:
             template.st = template_streams.get(template.name, None)
             if not template.st:

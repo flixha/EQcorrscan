@@ -802,6 +802,11 @@ def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
             starttimes.append(starttime)
     # Cut the data
     st1 = Stream()
+    trace_starttimes = dict()
+    trace_endtimes = dict()
+    trace_peak_snrs = dict()
+    trace_rms_snrs = dict()
+    trace_weights = dict()
     for _starttime in starttimes:
         Logger.debug(f"Working on channel {_starttime['station']}."
                     f"{_starttime['channel']}")
