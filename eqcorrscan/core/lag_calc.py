@@ -79,8 +79,8 @@ def _xcorr_interp(ccc, dt, resample_factor=10, use_new_resamp_method=False,
         if (cc_peak < np.amax(cc) or cc_peak > 1.0 or
                 not 0 < shift < len(ccc) * dt):
             # Sometimes the interpolation returns a worse result.
-            Logger.warning("Interpolation did not give an accurate result, "
-                           "returning maximum in data")
+            Logger.debug("Interpolation did not give an accurate result, "
+                         "returning maximum in data")
             return np.argmax(ccc) * dt, np.amax(ccc)
         return shift, cc_peak
 
