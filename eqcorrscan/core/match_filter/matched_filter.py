@@ -15,6 +15,7 @@ import logging
 from os import cpu_count
 from re import A
 from timeit import default_timer
+from collections import defaultdict
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -235,16 +236,37 @@ def _group_detect(templates, stream, threshold, threshold_type, trig_int,
                 trig_int=trig_int, plot=plot, plotdir=plotdir, cores=cores,
                 full_peaks=full_peaks, peak_cores=process_cores,
                 **kwargs)
+            # detections_template_names = [detection.template_name
+            #                             for detection in detections]
+            # Select detections very quickly: detection order does not
+            # change, make dict of keys: template-names and values:
+            # list of indices and use indices to select
+            detection_idx_dict = defaultdict(list)
+            for n, detection in enumerate(detections):
+                detection_idx_dict[detection.template_name].append(n)
+
             for template in template_group:
                 family = Family(template=template, detections=[])
-                for detection in detections:
-                    if detection.template_name == template.name:
-                        if detection.event:
-                            for pick in detection.event.picks:
-                                pick.time += template.prepick
-                            for origin in detection.event.origins:
-                                origin.time += template.prepick
-                        family.detections.append(detection)
+                fam_detections = [
+                    detections[idx]
+                    for idx in detection_idx_dict[family.template.name]]
+                for detection in fam_detections:
+                    if detection.event:
+                        for pick in detection.event.picks:
+                            # pick.time += template.prepick
+                            pick.time.ns += int(template.prepick * 1e9)
+                        for origin in detection.event.origins:
+                            # origin.time += template.prepick
+                            origin.time.ns += int(template.prepick * 1e9)
+                    family.detections.append(detection)
+                # for detection in detections:
+                #     if detection.template_name == template.name:
+                #         if detection.event:
+                #             for pick in detection.event.picks:
+                #                 pick.time += template.prepick
+                #             for origin in detection.event.origins:
+                #                 origin.time += template.prepick
+                #         family.detections.append(detection)
                 party += family
     return party
 
