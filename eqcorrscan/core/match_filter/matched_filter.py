@@ -405,15 +405,27 @@ def make_detections_from_peaks(
     if parallel:
         if not plot:
             stream = Stream()  # To send less resources to workers
+        if not plot and not export_cccsums:  # make simple list instead
+            cccsums = [0 for cccsum in cccsums]
+            # Not worth it to only create detections (without export / plot)
+            # for too few peaks:
+            n_peaks = np.sum(len(peaks) for peaks in all_peaks)
+            if n_peaks < 1e5:
+                cores = 1
         if not output_cat and not output_event:
             templates = [Stream() for template in templates]  # To send less
         else:
-            new_templates = []  # Just keep headers plus tiny part of data
+            templates = []  # Just keep headers plus tiny part of data
             for templ in templates:
-                new_template = Stream(
-                    [Trace(header=tr.stats, data=tr.data[:1]) for tr in templ])
-                new_templates.append(new_template)
-                templates = templates
+                # new_template = Stream(
+                #   [Trace(header=tr.stats, data=tr.data[:1]) for tr in templ])
+                new_template_st = _quick_copy_stream(
+                    templ, deepcopy_data=False)
+                # Set data arrays to first element alone to save time when
+                # sending to workers
+                for trace in new_template_st:
+                    trace.__dict__['data'] = trace.__dict__['data'][:1]
+                templates.append(new_template)
         if cores is None:
             cores = cpu_count()
         if cores > len(cccsums):
