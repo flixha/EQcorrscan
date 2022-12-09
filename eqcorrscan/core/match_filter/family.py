@@ -625,7 +625,8 @@ class Family(object):
         catalog_out = Catalog([ev for ev in picked_dict.values()])
         for detection_id, event in picked_dict.items():
             for pick in event.picks:
-                pick.time += self.template.prepick
+                # pick.time += self.template.prepick
+                pick.time.ns += int(round(self.template.prepick * 1e9))
             d = [d for d in self.detections if d.id == detection_id][0]
             d.event.picks = event.picks
         # TODO: reinstate this is relative magnitudes becomes viable.

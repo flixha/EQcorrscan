@@ -300,7 +300,8 @@ class Detection(object):
             else:
                 pick_time = self.detect_time + (
                     tr.stats.starttime - min_template_tm)
-                pick_time += template_prepick
+                # pick_time += template_prepick
+                pick_time.ns += int(template_prepick * 1e9)
                 new_pick = SparsePick(
                     time=pick_time, waveform_id=WaveformStreamID(
                         network_code=tr.stats.network,
