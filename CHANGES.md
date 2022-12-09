@@ -1,26 +1,22 @@
 ## Current
-* utils.mag_calc:
- - relative_magnitude: implemented full magnitude bias-correction for CC and SNR
- - relative_amplitude: returns dicts for SNR measurements
-* core.match_filter.party:
- - Implement parallel reading, and chunked writing to save memory on writing and 
-   accelerate reading - PR: #462
-* core.match_filter.tribe:
- - Implement parallel reading and chunked writing to save memory on writing and
-   accelerate reading - PR: #462
+* utils.cluster.decluster_distance_time
+  - Bug-fix: fix segmentation fault when declustering more than 46340 detections
+    with hypocentral_separation.
+
+## 0.4.4
+* core.match_filter
+  - Bug-fix: peak-cores could be defined twice in _group_detect through kwargs.
+    Fix: only update peak_cores if it isn't there already.
+* core.match_filter.tribe
  - Detect now allows passing of pre-processed data
+* core.match_filter.template
+ - Remove duplicate detections from overlapping windows using `._uniq()`
 * core.lag_calc._xcorr_interp
  - CC-interpolation replaced with resampling (more robust), old method
    deprecated. Use new method with use_new_resamp_method=True as **kwarg.
-* core.lag_calc
- - Added new option all_vert to transfer P-picks to all channels defined as
-   vertical_chans.
- - Made usage of all_vert, all_horiz consistent across the lag_calc.
-* core.template_gen
- - Added new option all_vert to transfer P-picks to all channels defined as
-   vertical_chans.
- - Made handling of horizontal_chans and vertical_chans consistent so that user
-   can freely choose relevant channels.
+* core.lag_calc:
+ - Fixed bug where minimum CC defined via min_cc_from_mean_cc_factor was not
+   set correctly for negative correlation sums.
 * utils.correlate
  - Fast Matched Filter now supported natively for version >= 1.4.0
  - Only full correlation stacks are returned now (e.g. where fewer than than
@@ -51,12 +47,15 @@
    scipy.cluster.hierarchy.linkage.
 * tribe, template, template_gen, archive_read, clustering: remove option to read
   from seishub (deprecated in obspy).
+<<<<<<< HEAD
 * core.match_filter.party:
  - Implement parallel reading, and chunked writing to save memory on writing and 
    accelerate reading - PR: #462
 * core.match_filter.tribe:
  - Implement parallel reading and chunked writing to save memory on writing and
    accelerate reading - PR: #462
+=======
+>>>>>>> fix_distance_decluster_int32_limit
 
 ## 0.4.3
 * core.match_filter

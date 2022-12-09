@@ -168,6 +168,8 @@ def _group_detect(templates, stream, threshold, threshold_type, trig_int,
     from eqcorrscan.core.match_filter.family import Family
 
     master = templates[0]
+    peak_cores = kwargs.get('peak_cores', process_cores)
+    kwargs.update(dict(peak_cores=peak_cores))
     # Check that they are all processed the same.
     lap = 0.0
     for template in templates:
@@ -209,6 +211,7 @@ def _group_detect(templates, stream, threshold, threshold_type, trig_int,
             n_groups += 1
     else:
         n_groups = 1
+    kwargs.update({'peak_cores': kwargs.get('peak_cores', process_cores)})
     for st_chunk in streams:
         chunk_start, chunk_end = (min(tr.stats.starttime for tr in st_chunk),
                                   max(tr.stats.endtime for tr in st_chunk))
@@ -234,8 +237,7 @@ def _group_detect(templates, stream, threshold, threshold_type, trig_int,
                 xcorr_func=xcorr_func, concurrency=concurrency,
                 threshold=threshold, threshold_type=threshold_type,
                 trig_int=trig_int, plot=plot, plotdir=plotdir, cores=cores,
-                full_peaks=full_peaks, peak_cores=process_cores,
-                **kwargs)
+                full_peaks=full_peaks, **kwargs)
             # detections_template_names = [detection.template_name
             #                             for detection in detections]
             # Select detections very quickly: detection order does not

@@ -305,7 +305,8 @@ class Family(object):
 
         .. rubric:: Example
 
-        >>> from eqcorrscan import Template, Detection
+        >>> from eqcorrscan import Template, Detection, Family
+        >>> from obspy import UTCDateTime
         >>> family = Family(
         ...     template=Template(name='a'), detections=[
         ...     Detection(template_name='a', detect_time=UTCDateTime(0),
