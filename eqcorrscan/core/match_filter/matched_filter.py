@@ -539,6 +539,13 @@ def _make_detections_from_peaks(
     return detections, det_cat
 
 
+def _mad(cccsum):
+    """
+    Internal helper to compute MAD-thresholds in parallel.
+    """
+    return np.median(np.abs(cccsum))
+
+
 def match_filter(template_names, template_list, st, threshold,
                  threshold_type, trig_int, plot=False, plotdir=None,
                  xcorr_func=None, concurrency=None, cores=None,
@@ -904,10 +911,16 @@ def match_filter(template_names, template_list, st, threshold,
     if str(threshold_type) == str("absolute"):
         thresholds = [threshold for _ in range(len(cccsums))]
     elif str(threshold_type) == str('MAD'):
-        thresholds = [threshold * np.median(np.abs(cccsum))
-                      for cccsum in cccsums]
-        # np-array should be 25 % quicker: - NO it's not?!
-        # thresholds = threshold * np.median(np.abs(np.array(cccsums)), axis=1)
+        if cores:
+            median_cores = min([cores, len(cccsums)])
+            if len(cccsums) * len(cccsums[0]) < 2e7:  # parallel not worth it
+                median_cores = 1
+            medians = Parallel(n_jobs=median_cores)(delayed(
+                _mad)(cccsum) for cccsum in cccsums)
+            thresholds = [threshold * median for median in medians]
+        else:
+            thresholds = [threshold * np.median(np.abs(cccsum))
+                          for cccsum in cccsums]
     else:
         thresholds = [threshold * no_chans[i] for i in range(len(cccsums))]
     if peak_cores is None:
