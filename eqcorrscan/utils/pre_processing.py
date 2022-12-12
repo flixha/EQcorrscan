@@ -1068,7 +1068,7 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
                 # out_template[channel_number].data = nan_channel  # quicker:
                 out_template[channel_number].__dict__['data'] = np.require(
                     copy.deepcopy(nan_channel), requirements=['C_CONTIGUOUS'])
-                    # This crashed with memory Error in sycl / ValueError in fmf
+                # This crashed with memory Error in sycl/ValueError in fmf
                 out_template[channel_number].stats.__dict__['npts'] = \
                     template_length
                 # out_template[channel_number].stats.starttime = \
