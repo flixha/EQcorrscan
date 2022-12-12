@@ -354,8 +354,8 @@ def _group_process(template_group, parallel, cores, stream, daylong,
             kwargs.update({'endtime': _endtime})
         else:
             _endtime = kwargs['starttime'] + 86400
-        chunk_stream = stream.slice(starttime=kwargs['starttime'],
-                                    endtime=_endtime).copy()
+        chunk_stream = _quick_copy_stream(
+            stream.slice(starttime=kwargs['starttime'], endtime=_endtime))
         Logger.debug(f"Processing chunk {i} between {kwargs['starttime']} "
                      f"and {_endtime}")
         if len(chunk_stream) == 0:
@@ -449,7 +449,7 @@ def make_detections_from_peaks(
                 # sending to workers
                 for trace in new_template_st:
                     trace.__dict__['data'] = trace.__dict__['data'][:1]
-                templates.append(new_template)
+                templates.append(new_template_st)
         if cores is None:
             cores = cpu_count()
         if cores > len(cccsums):
