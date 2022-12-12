@@ -2,6 +2,9 @@
 * utils.cluster.decluster_distance_time
   - Bug-fix: fix segmentation fault when declustering more than 46340 detections
     with hypocentral_separation.
+* utils.catalog_to_dd._prepare_stream
+  - Now more consistently slices templates to length = extract_len * samp_rate
+    so that user receives less warnings about insufficient data.
 
 ## 0.4.4
 * core.match_filter
@@ -47,15 +50,12 @@
    scipy.cluster.hierarchy.linkage.
 * tribe, template, template_gen, archive_read, clustering: remove option to read
   from seishub (deprecated in obspy).
-<<<<<<< HEAD
 * core.match_filter.party:
  - Implement parallel reading, and chunked writing to save memory on writing and 
    accelerate reading - PR: #462
 * core.match_filter.tribe:
  - Implement parallel reading and chunked writing to save memory on writing and
    accelerate reading - PR: #462
-=======
->>>>>>> fix_distance_decluster_int32_limit
 
 ## 0.4.3
 * core.match_filter
