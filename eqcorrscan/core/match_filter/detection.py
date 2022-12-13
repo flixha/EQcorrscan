@@ -15,6 +15,7 @@ import ast
 import copy
 import os
 import logging
+import warnings
 
 import numpy as np
 from obspy import Catalog, UTCDateTime, Stream
@@ -22,11 +23,13 @@ from obspy.core.event import (
     Comment, WaveformStreamID, Event, Pick, CreationInfo, ResourceIdentifier,
     Origin)
 from obspy.core.util import AttribDict
+from obspy.core.util.deprecation_helpers import ObsPyDeprecationWarning
 
 from eqcorrscan.core.match_filter.helpers import _test_event_similarity
 from eqcorrscan.utils.pre_processing import _stream_quick_select
 
 Logger = logging.getLogger(__name__)
+warnings.filterwarnings("ignore", category=ObsPyDeprecationWarning)
 
 
 class SparsePick(object):
