@@ -911,18 +911,22 @@ def match_filter(template_names, template_list, st, threshold,
     if str(threshold_type) == str("absolute"):
         thresholds = [threshold for _ in range(len(cccsums))]
     elif str(threshold_type) == str('MAD'):
+        outtic = default_timer()
         if cores:
             median_cores = min([cores, len(cccsums)])
             if len(cccsums) * len(cccsums[0]) < 2e7:  # parallel not worth it
                 median_cores = 1
-            Logger.info('Calculating median average deviation thresholds for '
-                        '%s cccsums with %s cores', len(cccsums), median_cores)
             medians = Parallel(n_jobs=median_cores)(delayed(
                 _mad)(cccsum) for cccsum in cccsums)
             thresholds = [threshold * median for median in medians]
         else:
+            median_cores = 1
             thresholds = [threshold * np.median(np.abs(cccsum))
                           for cccsum in cccsums]
+        outtoc = default_timer()
+        Logger.info('Calculating median average deviation thresholds for %s '
+                    'cccsums with %s cores took %s', len(cccsums),
+                    median_cores, "{0:.4f}s".format(outtoc - outtic))
     else:
         thresholds = [threshold * no_chans[i] for i in range(len(cccsums))]
     if peak_cores is None:
