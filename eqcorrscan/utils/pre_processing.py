@@ -816,13 +816,18 @@ def _quick_copy_trace(trace, deepcopy_data=True):
     :rtype: :class:`obspy.core.trace.Trace`
     return: trace
     """
+    # 6.8 microseconds
     new_trace = Trace()
     for key, value in trace.__dict__.items():
         if key == 'stats':
             new_stats = new_trace.stats
             for key_2, value_2 in value.__dict__.items():
                 if isinstance(value_2, UTCDateTime):
-                    new_stats.__dict__[key_2] = UTCDateTime(ns=value_2.ns)
+                    # 2 * 2.2 = 4.4 microseconds
+                    # new_stats.__dict__[key_2] = UTCDateTime(ns=value_2.ns)
+                    # 2 * 2 = 4 microseconds
+                    new_stats.__dict__[key_2] = UTCDateTime(
+                        ns=time.__dict__['_UTCDateTime__ns'])
                 else:  # for scalars and strings
                     # This can not yet handle copy of complex stats like
                     # response object, processing history list, etc.
@@ -830,6 +835,7 @@ def _quick_copy_trace(trace, deepcopy_data=True):
                     new_stats.__dict__[key_2] = value_2
         elif deepcopy_data:
             # data needs to be deepcopied (and anything else, to be safe)
+            # 1.9 microseconds
             new_trace.__dict__[key] = copy.deepcopy(value)
         else:  # No deepcopy, e.g. for NaN-traces with no effect on results
             new_trace.__dict__[key] = value
