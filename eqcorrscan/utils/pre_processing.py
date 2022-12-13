@@ -827,7 +827,7 @@ def _quick_copy_trace(trace, deepcopy_data=True):
                     # new_stats.__dict__[key_2] = UTCDateTime(ns=value_2.ns)
                     # 2 * 2 = 4 microseconds
                     new_stats.__dict__[key_2] = UTCDateTime(
-                        ns=time.__dict__['_UTCDateTime__ns'])
+                        ns=value_2.__dict__['_UTCDateTime__ns'])
                 else:  # for scalars and strings
                     # This can not yet handle copy of complex stats like
                     # response object, processing history list, etc.
