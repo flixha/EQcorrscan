@@ -915,6 +915,8 @@ def match_filter(template_names, template_list, st, threshold,
             median_cores = min([cores, len(cccsums)])
             if len(cccsums) * len(cccsums[0]) < 2e7:  # parallel not worth it
                 median_cores = 1
+            Logger.info('Calculating median average deviation thresholds for '
+                        '%s cccsums with %s cores', len(cccsums), median_cores)
             medians = Parallel(n_jobs=median_cores)(delayed(
                 _mad)(cccsum) for cccsum in cccsums)
             thresholds = [threshold * median for median in medians]
