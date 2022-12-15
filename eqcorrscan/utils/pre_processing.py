@@ -1081,6 +1081,9 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
                 #    template_starttime
                 out_template[channel_number].stats.__dict__['starttime'] = \
                     template_starttime
+                out_template[channel_number].stats.__dict__['endtime'] = \
+                    UTCDateTime(ns=int(round(template_starttime.ns + 1e9
+                                             * template_length / samp_rate)))
             else:
                 out_template[channel_number] = template_channel[channel_index]
 
