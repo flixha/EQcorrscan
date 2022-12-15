@@ -526,7 +526,9 @@ def relative_amplitude(st1, st2, event1, event2, noise_window=(-20, -1),
             [tr for tr in st1.copy() if (tr.stats.station, tr.stats.channel) in
              [(p.waveform_id.station_code, p.waveform_id.channel_code)
               for p in event1.picks]])
-    seed_ids = {tr.id for tr in st1}.intersection({tr.id for tr in st2})
+    # Intersection of dict-keys:
+    seed_ids = (dict.fromkeys([tr.id for tr in st1]).keys() &
+                dict.fromkeys([tr.id for tr in st2]).keys())
     amplitudes = {}
     snrs_1 = {}
     snrs_2 = {}

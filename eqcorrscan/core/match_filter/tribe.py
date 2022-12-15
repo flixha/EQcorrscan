@@ -802,7 +802,7 @@ class Tribe(object):
                 else:
                     chan_id += ('*',)
                 template_channel_ids.append(chan_id)
-        template_channel_ids = list(set(template_channel_ids))
+        template_channel_ids = list(dict.fromkeys(template_channel_ids))
         if return_stream:
             stream = Stream()
         if int(download_groups) < download_groups:

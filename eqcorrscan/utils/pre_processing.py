@@ -775,7 +775,7 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
     assert len(template_length) == 1, "Template traces not all the same length"
     template_length = template_length.pop()
 
-    stream_ids = {tr.id for tr in stream}
+    stream_ids = dict.fromkeys([tr.id for tr in stream])
 
     # Need to ensure that a channel can be in the template multiple times.
     all_template_ids = [
@@ -866,8 +866,9 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
     # because the NaN-traces will save the right starttime for the template.
     nan_stream_ids = list()
     if any(n_template_traces > n_stream_traces):
-        earliest_templ_trace_ids = set(
-            [template.sort(['starttime'])[0].id for template in flt_templates])
+        earliest_templ_trace_ids = list(dict.fromkeys(
+            [template.sort(['starttime'])[0].id
+             for template in flt_templates]))
         for earliest_templ_trace_id in earliest_templ_trace_ids:
             if earliest_templ_trace_id not in template_ids:
                 nan_stream_ids.append(earliest_templ_trace_id)
@@ -886,9 +887,9 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
                         'npts': stream_length, 'sampling_rate': samp_rate}))
                 seed_ids.append((earliest_templ_trace_id, 0))
 
-    incomplete_templates = {
-        template_name for template_name, template in _out.items() if
-        sorted([tr.id for tr in template]) != [tr.id for tr in nan_template]}
+    incomplete_templates = dict.fromkeys(
+        [template_name for template_name, template in _out.items() if
+         sorted([tr.id for tr in template]) != [tr.id for tr in nan_template]])
 
     # Fill out the templates with nan channels
     for template_name in incomplete_templates:

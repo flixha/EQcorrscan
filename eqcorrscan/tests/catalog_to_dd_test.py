@@ -134,7 +134,7 @@ class TestCatalogMethods(unittest.TestCase):
 
     def test_process_stream(self):
         stream = self.streams[0]
-        seed_ids = {tr.id for tr in stream}
+        seed_ids = dict.fromkeys([tr.id for tr in stream])
         event = self.catalog[0]
         extract_len = 10.
         sliced_stream = _prepare_stream(

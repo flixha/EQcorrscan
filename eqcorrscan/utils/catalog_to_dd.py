@@ -230,13 +230,14 @@ def _compute_dt_correlations(catalog, master, min_link, event_id_mapper,
     master_stream = _prepare_stream(
         stream=stream_dict[str(master.resource_id)], event=master,
         extract_len=extract_len, pre_pick=pre_pick)
-    available_seed_ids = {tr.id for st in master_stream.values() for tr in st}
+    available_seed_ids = dict.fromkeys(
+        [tr.id for st in master_stream.values() for tr in st])
     Logger.debug(f"The channels provided are: {available_seed_ids}")
-    master_seed_ids = {
-        SeedPickID(pick.waveform_id.get_seed_string(), pick.phase_hint[0])
-        for pick in master.picks if
-        pick.phase_hint[0] in "PS" and
-        pick.waveform_id.get_seed_string() in available_seed_ids}
+    master_seed_ids = dict.fromkeys(
+        [SeedPickID(pick.waveform_id.get_seed_string(), pick.phase_hint[0])
+         for pick in master.picks if
+         pick.phase_hint[0] in "PS" and
+         pick.waveform_id.get_seed_string() in available_seed_ids])
     Logger.debug(f"Using channels: {master_seed_ids}")
     # Dictionary of travel-times for master keyed by {station}_{phase_hint}
     master_tts = dict()
@@ -286,8 +287,9 @@ def _compute_dt_correlations(catalog, master, min_link, event_id_mapper,
                 seed_pick_ids=master_seed_ids)
             for event_id in event_ids}
 
-    sampling_rates = {tr.stats.sampling_rate for st in master_stream.values()
-                      for tr in st}
+    sampling_rates = dict.fromkeys(
+        [tr.stats.sampling_rate for st in master_stream.values()
+         for tr in st])
     for phase_hint in master_stream.keys():  # Loop over P and S separately
         for sampling_rate in sampling_rates:  # Loop over separate samp rates
             delta = 1.0 / sampling_rate

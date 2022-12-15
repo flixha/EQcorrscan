@@ -157,8 +157,9 @@ def _concatenate_and_correlate(streams, template, cores):
         Logger.debug("Multiple lengths of stream found, using the longest")
     channel_length = sorted(list(channel_length))[-1]
     # pre-define stream for efficiency
-    chans = {tr.id for st in streams for tr in st}.intersection(
-        {tr.id for tr in template})
+    # Intersection of dict-keys:
+    chans = (dict.fromkeys([tr.id for st in streams for tr in st]).keys() &
+             dict.fromkeys([tr.id for tr in template]).keys())
     data = np.zeros((len(chans), channel_length * len(streams)),
                     dtype=np.float32)
 
