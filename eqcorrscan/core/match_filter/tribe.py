@@ -864,21 +864,18 @@ class Tribe(object):
                 if family is not None:
                     # Slow uniq:
                     # family.detections = family._uniq().detections
-
-                    # quicker uniq:
-                    uniq_det_tuples = set(
-                        [(det.id, str(det.detect_time), det.detect_val)
-                         for det in family])
+                    # Very quick uniq:
+                    det_tuples = [
+                        (det.id, str(det.detect_time), det.detect_val)
+                        for det in family]
+                    # Retrieve the indices for the first occurrence of each
+                    # detection in the family (so only unique detections will
+                    # remain).
+                    uniq_det_tuples, uniq_det_indices = np.unique(
+                        det_tuples, return_index=True, axis=0)
                     uniq_detections = []
-                    for det_tuple in uniq_det_tuples:
-                        udet = None
-                        for det in family:
-                            if (det.id == det_tuple[0] and
-                                str(det.detect_time) == det_tuple[1] and
-                                det.detect_val == det_tuple[2]):
-                                udet = det
-                                break
-                        uniq_detections.append(udet)
+                    for uniq_det_index in uniq_det_indices:
+                        uniq_detections.append(family[uniq_det_index])
                     family.detections = uniq_detections
         return party
 

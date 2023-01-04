@@ -1,17 +1,4 @@
 ## Current
-* utils.mag_calc:
- - relative_magnitude: implemented full magnitude bias-correction for CC and SNR
- - relative_amplitude: returns dicts for SNR measurements
-* core.match_filter.party:
- - Implement parallel reading, and chunked writing to save memory on writing and 
-   accelerate reading - PR: #462
-* core.match_filter.tribe:
- - Implement parallel reading and chunked writing to save memory on writing and
-   accelerate reading - PR: #462
- - Detect now allows passing of pre-processed data
-* core.lag_calc._xcorr_interp
- - CC-interpolation replaced with resampling (more robust), old method
-   deprecated. Use new method with use_new_resamp_method=True as **kwarg.
 * core.lag_calc
  - Added new option all_vert to transfer P-picks to all channels defined as
    vertical_chans.
@@ -21,6 +8,49 @@
    vertical_chans.
  - Made handling of horizontal_chans and vertical_chans consistent so that user
    can freely choose relevant channels.
+* utils.mag_calc:
+ - relative_magnitude: implemented full magnitude bias-correction for CC and SNR
+ - relative_amplitude: returns dicts for SNR measurements
+* core.match_filter.party:
+ - Implement parallel reading, and chunked writing to save memory on writing and 
+   accelerate reading - PR: #462
+* core.match_filter.tribe:
+ - Implement parallel reading and chunked writing to save memory on writing and
+   accelerate reading - PR: #462
+* core.match_filter.matched_filter
+  - 5x speed up for MAD threshold calculation with parallel (threaded) MAD 
+    calculation (#531).
+* core.match_filter.detect
+  - 1000x speedup for retrieving unique detections for all templates.
+  - 30x speedup in handling detections (50x speedup in selecting detections,
+    4x speedup in adding prepick time)
+* core.match_filter.template
+  - new quick_group_templates function for 50x quicker template grouping.
+* utils.pre_processing
+  - `_prep_data_for_correlation`: 3x speedup for filling NaN-traces in templates
+  - New function ``quick_trace_select` for a very efficient selection of trace
+    by seed ID without wildcards (4x speedup).
+* utils.catalog_to_dd._prepare_stream
+  - Now more consistently slices templates to length = extract_len * samp_rate
+    so that user receives less warnings about insufficient data.
+* utils.cluster.decluster_distance_time
+  - Bug-fix: fix segmentation fault when declustering more than 46340 detections
+    with hypocentral_separation.
+
+## 0.4.4
+* core.match_filter
+  - Bug-fix: peak-cores could be defined twice in _group_detect through kwargs.
+    Fix: only update peak_cores if it isn't there already.
+* core.match_filter.tribe
+ - Detect now allows passing of pre-processed data
+* core.match_filter.template
+ - Remove duplicate detections from overlapping windows using `._uniq()`
+* core.lag_calc._xcorr_interp
+ - CC-interpolation replaced with resampling (more robust), old method
+   deprecated. Use new method with use_new_resamp_method=True as **kwarg.
+* core.lag_calc:
+ - Fixed bug where minimum CC defined via min_cc_from_mean_cc_factor was not
+   set correctly for negative correlation sums.
 * utils.correlate
  - Fast Matched Filter now supported natively for version >= 1.4.0
  - Only full correlation stacks are returned now (e.g. where fewer than than
@@ -51,12 +81,6 @@
    scipy.cluster.hierarchy.linkage.
 * tribe, template, template_gen, archive_read, clustering: remove option to read
   from seishub (deprecated in obspy).
-* core.match_filter.party:
- - Implement parallel reading, and chunked writing to save memory on writing and 
-   accelerate reading - PR: #462
-* core.match_filter.tribe:
- - Implement parallel reading and chunked writing to save memory on writing and
-   accelerate reading - PR: #462
 
 ## 0.4.3
 * core.match_filter
