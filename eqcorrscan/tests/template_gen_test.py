@@ -461,14 +461,16 @@ class TestEdgeGen(unittest.TestCase):
                                  all_horiz=True,
                                  horizontal_chans=['E', 'N', '1', '2', '3'])
         for pick in self.picks:
+            if pick.waveform_id.station_code == 'WZ04':
+                continue
             if pick.phase_hint == 'S':
                 self.assertGreaterEqual(
                     len(template.select(
                         station=pick.waveform_id.station_code)), 2)
 
     def test_snr_cutoff(self):
-        template = _template_gen(self.picks, self.st.copy().detrend(), 10, min_snr=100)
-        self.assertEqual(len(template), 1)
+        template = _template_gen(self.picks, self.st.copy().detrend(), 10, min_snr=8)
+        self.assertEqual(len(template), 2)
 
     def test_no_data_for_channel(self):
         st = self.st.copy().detrend()

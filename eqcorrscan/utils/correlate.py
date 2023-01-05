@@ -1021,11 +1021,6 @@ def fmf_xcorr(templates, stream, pads, weights=None, arch="precise",
 
     used_chans = ~np.isnan(templates).any(axis=1)
 
-    if 'weights' in kwargs and kwargs.get('weights') is not None:
-        weights = kwargs.get('weights')
-    else:
-        weights = np.ones((1, templates.shape[0]))
-
     # We have to reshape to an extra dimension for FMF
     ccc = _run_fmf_xcorr(
         template_arr=templates.reshape(
@@ -1410,6 +1405,7 @@ def _get_array_dicts(templates, stream, stack, copy_streams=True):
     Logger.info('Setting weights from trace-stats, minimum weight: %s, '
                 'maximum weight %s, total sum of weights: %s',
                 np.min(weights), np.max(weights), np.sum(weights))
+    # Update weights in weight-dict with normalized values:
     for seed_id, normalized_template_weights in zip(seed_ids, weights):
         weight_dict.update({seed_id: normalized_template_weights})
 
