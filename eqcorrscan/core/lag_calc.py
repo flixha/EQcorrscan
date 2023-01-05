@@ -224,7 +224,7 @@ def _concatenate_and_correlate(streams, template, cores):
 def xcorr_pick_family(family, stream, shift_len=0.2, min_cc=0.4,
                       min_cc_from_mean_cc_factor=None,
                       all_vert=False, all_horiz=False, vertical_chans=['Z'],
-                      horizontal_chans=['E', 'N', '1', '2', '3'],
+                      horizontal_chans=['E', 'N', '1', '2'],
                       cores=1, interpolate=False,
                       plot=False, plotdir=None, export_cc=False, cc_dir=None,
                       max_detect_val_deviation=0.3,
@@ -422,7 +422,7 @@ def xcorr_pick_family(family, stream, shift_len=0.2, min_cc=0.4,
 
 def _prepare_data(family, detect_data, shift_len, all_vert=False,
                   all_horiz=False, vertical_chans=['Z'],
-                  horizontal_chans=['E', 'N', '1', '2', '3']):
+                  horizontal_chans=['E', 'N', '1', '2']):
     """
     Prepare data for lag_calc - reduce memory here.
 

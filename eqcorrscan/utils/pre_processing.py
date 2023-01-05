@@ -781,29 +781,11 @@ def _fill_gaps(tr):
     return gaps, tr
 
 
-def _stream_quick_select(stream, seed_id):
-    """
-    4x quicker selection of traces in stream by full Seed-ID. Does not support
-    wildcards or selection by network/station/location/channel alone.
-    """
-    net, sta, loc, chan = seed_id.split('.')
-    stream = Stream(
-        [tr for tr in stream
-         if (tr.stats.network == net and
-             tr.stats.station == sta and
-             tr.stats.location == loc and
-             tr.stats.channel == chan)])
-    return stream
-
-
 def _quick_copy_trace(trace, deepcopy_data=True):
     """
     Function to quickly copy a trace. Sets values in the traces' and trace
     header's dict directly, circumventing obspy's init functions.
     Speedup: from 37 us to 12 us per trace - 3x faster
-
-    Warning: do not use to copy traces with processing history or response
-    information.
 
     :type trace: :class:`obspy.core.trace.Trace`
     :param trace: Stream to quickly copy
@@ -811,31 +793,23 @@ def _quick_copy_trace(trace, deepcopy_data=True):
     :param deepcopy_data:
         Whether to deepcopy trace data (with `deepcopy_data=False` expect up to
         20 % speedup, but use only when you know that data trace contents will
-        not change or affect results).
-
+        not change or affect results). Warning: do not use this option to copy
+        traces with processing history or response information.
     :rtype: :class:`obspy.core.trace.Trace`
     return: trace
     """
-    # 6.8 microseconds
     new_trace = Trace()
     for key, value in trace.__dict__.items():
         if key == 'stats':
             new_stats = new_trace.stats
             for key_2, value_2 in value.__dict__.items():
                 if isinstance(value_2, UTCDateTime):
-                    # 2 * 2.2 = 4.4 microseconds
-                    # new_stats.__dict__[key_2] = UTCDateTime(ns=value_2.ns)
-                    # 2 * 2 = 4 microseconds
                     new_stats.__dict__[key_2] = UTCDateTime(
                         ns=value_2.__dict__['_UTCDateTime__ns'])
-                else:  # for scalars and strings
-                    # This can not yet handle copy of complex stats like
-                    # response object, processing history list, etc.
-                    # copy.deepcopy(value_2)
+                else:
                     new_stats.__dict__[key_2] = value_2
         elif deepcopy_data:
             # data needs to be deepcopied (and anything else, to be safe)
-            # 1.9 microseconds
             new_trace.__dict__[key] = copy.deepcopy(value)
         else:  # No deepcopy, e.g. for NaN-traces with no effect on results
             new_trace.__dict__[key] = value
@@ -854,7 +828,6 @@ def _quick_copy_stream(stream, deepcopy_data=True):
 
     This is what takes longest (1 empty trace, total time to copy 27 us):
     copy header: 18 us (vs create new empty header: 683 ns)
-
     Two points that can speed up copying / creation:
         1. circumvent trace.__init__ and trace.__set_attr__ by setting value
            directly in trace's __dict__
@@ -877,6 +850,21 @@ def _quick_copy_stream(stream, deepcopy_data=True):
         new_traces.append(
             _quick_copy_trace(trace, deepcopy_data=deepcopy_data))
     return Stream(new_traces)
+
+
+def _stream_quick_select(stream, seed_id):
+    """
+    4x quicker selection of traces in stream by full Seed-ID. Does not support
+    wildcards or selection by network/station/location/channel alone.
+    """
+    net, sta, loc, chan = seed_id.split('.')
+    stream = Stream(
+        [tr for tr in stream
+         if (tr.stats.network == net and
+             tr.stats.station == sta and
+             tr.stats.location == loc and
+             tr.stats.channel == chan)])
+    return stream
 
 
 def _prep_data_for_correlation(stream, templates, template_names=None,
@@ -1051,7 +1039,6 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
     for template_name in incomplete_templates:
         template = _out[template_name]
         template_starttime = min(tr.stats.starttime for tr in template)
-        # out_template = nan_template.copy()
         out_template = _quick_copy_stream(nan_template, deepcopy_data=False)
 
         # Select traces very quickly: assume that trace order does not change,
@@ -1062,28 +1049,23 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
 
         for channel_number, _seed_id in enumerate(seed_ids):
             seed_id, channel_index = _seed_id
-            # template_channel = template.select(id=seed_id)
-            # Quickest way to select traces - use instead of st.select because
-            # this line is called very often.
-            # template_channel = _stream_quick_select(template, seed_id)
             # Select all traces with same seed_id, based on indices for
             # corresponding traces stored in stream_trace_id_dict
+            # Much quicker than: template_channel = template.select(id=seed_id)
             template_channel = Stream([
                 template.traces[idx] for idx in stream_trace_id_dict[seed_id]])
             if len(template_channel) <= channel_index:
                 # out_template[channel_number].data = nan_channel  # quicker:
-                out_template[channel_number].__dict__['data'] = np.require(
-                    copy.deepcopy(nan_channel), requirements=['C_CONTIGUOUS'])
-                # This crashed with memory Error in sycl/ValueError in fmf
+                out_template[channel_number].__dict__['data'] = copy.deepcopy(
+                    nan_channel)
                 out_template[channel_number].stats.__dict__['npts'] = \
                     template_length
-                # out_template[channel_number].stats.starttime = \
-                #    template_starttime
                 out_template[channel_number].stats.__dict__['starttime'] = \
                     template_starttime
                 out_template[channel_number].stats.__dict__['endtime'] = \
-                    UTCDateTime(ns=int(round(template_starttime.ns + 1e9
-                                             * template_length / samp_rate)))
+                    UTCDateTime(ns=int(
+                        round(template_starttime.ns
+                              + (template_length / samp_rate) * 1e9)))
             else:
                 out_template[channel_number] = template_channel[channel_index]
 

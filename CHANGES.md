@@ -1,15 +1,38 @@
 ## Current
-<<<<<<< HEAD
 * utils.cluster.decluster_distance_time
   - Bug-fix: fix segmentation fault when declustering more than 46340 detections
     with hypocentral_separation.
 * utils.catalog_to_dd._prepare_stream
   - Now more consistently slices templates to length = extract_len * samp_rate
     so that user receives less warnings about insufficient data.
-=======
+* utils.correlate
+  - Weighted correlations supported. Template weights are expected in
+   individual trace.stats.extra.weight attributes.
+  - Support for the fmf2-backends, one for any GPU with hipSYCL-compiler
+    (Nvidia, AMD, Intel), and one for any CPU with AVX (AVX2, AVX512) vector
+    instruction support.
 * core.match_filter.matched_filter
   - 2.5x speed up for MAD threshold calculation with parallel median.
->>>>>>> speedup_07_MAD_parallel
+* core.match_filter.matched_filter
+  - 5x speed up for MAD threshold calculation with parallel (threaded) MAD 
+    calculation (#531).
+* core.match_filter.detect
+  - 1000x speedup for retrieving unique detections for all templates.
+  - 30x speedup in handling detections (50x speedup in selecting detections,
+    4x speedup in adding prepick time)
+* core.match_filter.template
+  - new quick_group_templates function for 50x quicker template grouping.
+* utils.pre_processing
+  - `_prep_data_for_correlation`: 3x speedup for filling NaN-traces in templates
+  - New function ``quick_trace_select` for a very efficient selection of trace
+    by seed ID without wildcards (4x speedup).
+* utils.catalog_to_dd._prepare_stream
+  - Now more consistently slices templates to length = extract_len * samp_rate
+    so that user receives less warnings about insufficient data.
+* utils.cluster.decluster_distance_time
+  - Bug-fix: fix segmentation fault when declustering more than 46340 detections
+    with hypocentral_separation.
+
 
 ## 0.4.4
 * core.match_filter
@@ -22,9 +45,17 @@
 * core.lag_calc._xcorr_interp
  - CC-interpolation replaced with resampling (more robust), old method
    deprecated. Use new method with use_new_resamp_method=True as **kwarg.
-* core.lag_calc:
+* core.lag_calc
+ - Added new option all_vert to transfer P-picks to all channels defined as
+   vertical_chans.
+ - Made usage of all_vert, all_horiz consistent across the lag_calc.
  - Fixed bug where minimum CC defined via min_cc_from_mean_cc_factor was not
    set correctly for negative correlation sums.
+* core.template_gen
+ - Added new option all_vert to transfer P-picks to all channels defined as
+   vertical_chans.
+ - Made handling of horizontal_chans and vertical_chans consistent so that user
+   can freely choose relevant channels.
 * utils.correlate
  - Fast Matched Filter now supported natively for version >= 1.4.0
  - Only full correlation stacks are returned now (e.g. where fewer than than

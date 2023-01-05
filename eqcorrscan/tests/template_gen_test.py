@@ -457,8 +457,9 @@ class TestEdgeGen(unittest.TestCase):
             self.assertTrue(pick.waveform_id.station_code in used_stations)
 
     def test_swin_all_and_all_horiz(self):
-        template = _template_gen(self.picks, self.st.copy().detrend(), 10,
-                                 swin='all', all_horiz=True)
+        template = _template_gen(self.picks, self.st.copy(), 10, swin='all',
+                                 all_horiz=True,
+                                 horizontal_chans=['E', 'N', '1', '2', '3'])
         for pick in self.picks:
             if pick.phase_hint == 'S':
                 self.assertGreaterEqual(

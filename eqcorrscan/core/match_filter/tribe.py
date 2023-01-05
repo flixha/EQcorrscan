@@ -30,8 +30,8 @@ from obspy.core.util.attribdict import AttribDict
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 from eqcorrscan.core.match_filter.template import (
-    Template, group_templates, quick_group_templates)
-from eqcorrscan.core.match_filter.party import Party, _read_catalog_pass_error
+    Template, quick_group_templates)
+from eqcorrscan.core.match_filter.party import Party
 from eqcorrscan.core.match_filter.helpers import (
     _safemembers, _par_read, get_waveform_client)
 from eqcorrscan.core.match_filter.matched_filter import (
@@ -864,7 +864,7 @@ class Tribe(object):
                 if family is not None:
                     # Slow uniq:
                     # family.detections = family._uniq().detections
-                    # quicker uniq:
+                    # Very quick uniq:
                     det_tuples = [
                         (det.id, str(det.detect_time), det.detect_val)
                         for det in family]
