@@ -1400,6 +1400,19 @@ def _get_array_dicts(templates, stream, stack, copy_streams=True):
             pad_list = [0 for _ in range(len(templates))]
         pad_dict.update({seed_id: pad_list})
 
+    # Normalize weights for each template so that CC sum stays smaller than
+    # number of channels (else: AssertionError in Detection).
+    weights = np.array([template_weights
+                        for seed_id, template_weights in weight_dict.items()])
+    weights = weights * (np.count_nonzero(weights, axis=0, keepdims=True) /
+                         weights.sum(axis=0, keepdims=True))
+    # weights = np.float32(weights)  # Required for FFTW backend
+    Logger.info('Setting weights from trace-stats, minimum weight: %s, '
+                'maximum weight %s, total sum of weights: %s',
+                np.min(weights), np.max(weights), np.sum(weights))
+    for seed_id, normalized_template_weights in zip(seed_ids, weights):
+        weight_dict.update({seed_id: normalized_template_weights})
+
     return stream_dict, template_dict, pad_dict, weight_dict, seed_ids
 
 
