@@ -939,8 +939,8 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
         if stream_channel.stats.npts == stream_length:
             stream_data = stream_channel.data
         else:
-            Logger.info('Data for {0} is not as long as needed, '
-                        'padding'.format(stream_channel.id))
+            Logger.debug('Data for {0} is not as long as needed, '
+                         'padding'.format(stream_channel.id))
             if force_stream_epoch:
                 start_pad = int(samp_rate * (
                         stream_channel.stats.starttime - stream_start))
