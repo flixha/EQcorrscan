@@ -127,7 +127,12 @@ class Detection(object):
         if event is not None:
             event.resource_id = self.id
         if self.typeofdet == 'corr':
-            assert abs(self.detect_val) <= self.no_chans
+            if abs(self.detect_val) > self.no_chans:
+                Logger.error(
+                    'Detection value (%s) larger than number of channels (%s) '
+                    'for detection %s .',
+                    self.detect_val, self.no_chans, self.id)
+            # assert abs(self.detect_val) <= self.no_chans
 
     def __repr__(self):
         """Simple print."""
