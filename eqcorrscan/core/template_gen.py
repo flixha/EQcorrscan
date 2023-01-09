@@ -600,7 +600,7 @@ def _rms(array):
 def _template_gen(picks, st, length, swin='all', prepick=0.05, all_vert=False,
                   all_horiz=False, delayed=True, plot=False, min_snr=None,
                   plotdir=None, vertical_chans=['Z'],
-                  horizontal_chans=['E', 'N', '1', '2']):
+                  horizontal_chans=['E', 'N', '1', '2'], **kwargs):
     """
     Master function to generate a multiplexed template for a single event.
 
