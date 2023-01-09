@@ -855,7 +855,9 @@ class Tribe(object):
                 full_peaks=full_peaks, process_cores=process_cores,
                 ignore_bad_data=ignore_bad_data, arg_check=False,
                 output_event=output_event, output_cat=False, **kwargs)
-            party += group_party
+            # party += group_party
+            for family in group_party:
+                party.families.append(family)
             if save_progress:
                 party.write("eqcorrscan_temporary_party")
         if len(party) > 0:

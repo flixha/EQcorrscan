@@ -261,7 +261,8 @@ def _group_detect(templates, stream, threshold, threshold_type, trig_int,
                             origin.time.ns += int(round(
                                 template.prepick * 1e9))
                     family.detections.append(detection)
-                party += family
+                # party += family
+                party.families.append(family)
     return party
 
 
