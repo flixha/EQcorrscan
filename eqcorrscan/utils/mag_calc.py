@@ -153,6 +153,10 @@ def calc_b_value(magnitudes, completeness, max_mag=None, plotvar=True):
     >>> round(b_values[4][1], 1)
     1.0
     """
+    # Check that there are no nans or infs
+    if np.isnan(magnitudes).any():
+        Logger.warning('Found nan values, removing them')
+        magnitudes = [mag for mag in magnitudes if not np.isnan(mag)]
     b_values = []
     # Calculate the cdf for all magnitudes
     counts = Counter(magnitudes)
@@ -189,7 +193,8 @@ def calc_b_value(magnitudes, completeness, max_mag=None, plotvar=True):
         r = 100 - ((np.sum([abs(complete_freq[i] - predicted_freqs[i])
                            for i in range(len(complete_freq))]) * 100) /
                    np.sum(complete_freq))
-        b_values.append((m_c, abs(fit[0][0]), r, len(complete_mags)))
+        b_values.append((m_c, abs(fit[0][0]), r, 10 ** complete_freq[-1],
+                         len(complete_mags)))
     if plotvar:
         fig, ax1 = plt.subplots()
         b_vals = ax1.scatter(list(zip(*b_values))[0], list(zip(*b_values))[1],
