@@ -66,6 +66,9 @@ def calc_max_curv(magnitudes, bin_size=0.5, plotvar=False):
     >>> calc_max_curv(magnitudes, plotvar=False)
     3.0
     """
+    if np.isnan(magnitudes).any():
+        Logger.warning('Found nan values, removing them')
+        magnitudes = [mag for mag in magnitudes if not np.isnan(mag)]
     min_bin, max_bin = int(min(magnitudes)), int(max(magnitudes) + 1)
     bins = np.arange(min_bin, max_bin + bin_size, bin_size)
     df, bins = np.histogram(magnitudes, bins)
@@ -125,7 +128,7 @@ def calc_b_value(magnitudes, completeness, max_mag=None, plotvar=True):
     :rtype: list
     :return:
         List of tuples of (completeness, b-value, residual, number of
-        magnitudes used)
+        magnitudes used, number of magnitude bins used)
 
     .. Note::
         High "residuals" indicate better fit. Residuals are calculated
@@ -193,8 +196,9 @@ def calc_b_value(magnitudes, completeness, max_mag=None, plotvar=True):
         r = 100 - ((np.sum([abs(complete_freq[i] - predicted_freqs[i])
                            for i in range(len(complete_freq))]) * 100) /
                    np.sum(complete_freq))
-        b_values.append((m_c, abs(fit[0][0]), r, 10 ** complete_freq[-1],
-                         len(complete_mags)))
+        n_mags_in_fit = int(10 ** complete_freq[-1])
+        n_mag_bins = len(complete_mags)
+        b_values.append((m_c, abs(fit[0][0]), r, n_mags_in_fit, n_mag_bins))
     if plotvar:
         fig, ax1 = plt.subplots()
         b_vals = ax1.scatter(list(zip(*b_values))[0], list(zip(*b_values))[1],
