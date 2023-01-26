@@ -136,7 +136,7 @@ def _xcorr_interp(ccc, dt, resample_factor=10, use_new_resamp_method=False,
     return shift, coeff
 
 
-def _concatenate_and_correlate(streams, template, cores):
+def _concatenate_and_correlate(streams, template, cores, **kwargs):
     """
     Concatenate a list of streams into one stream and correlate that with a
     template.
@@ -193,7 +193,10 @@ def _concatenate_and_correlate(streams, template, cores):
         if tr.id in chans:
             _template += tr
     # Do correlations
-    xcorr_func = get_stream_xcorr(name_or_func="fftw")
+    try:
+        xcorr_func = get_stream_xcorr(kwargs.get("xcorr_func"))
+    except KeyError:
+        xcorr_func = get_stream_xcorr(name_or_func="fftw")
     ccc, _, chan_order = xcorr_func(
         templates=[_template], stream=concatenated_stream, stack=False,
         cores=cores)
