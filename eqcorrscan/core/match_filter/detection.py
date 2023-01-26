@@ -326,15 +326,24 @@ class Detection(object):
                 else:
                     # Multiple picks for this trace in template
                     # similar_traces = template_st.select(id=tr.id)
-                    similar_traces = _stream_quick_select(template_st, tr.id)
-                    similar_traces.sort()
-                    _index = similar_traces.traces.index(tr)
-                    try:
-                        new_pick.phase_hint = sorted(
-                            template_pick,
-                            key=lambda p: p.time)[_index].phase_hint
-                    except IndexError:
-                        Logger.error(f"No pick for trace: {tr.id}")
+                    try:  # Easiest is to retrieve pick from trace stats
+                        new_pick.phase_hint = tr.stats.extra.phase_hint
+                    except AttributeError:  # Else try to find pick
+                        similar_traces = _stream_quick_select(template_st,
+                                                              tr.id)
+                        if len(similar_traces) != len(template_pick):
+                            msg = ("Number of traces and picks with same Seed-"
+                                   + "ID do not match; cannot assign phase " +
+                                   " hint to detection pick.")
+                            raise ValueError(msg)
+                        similar_traces.sort()
+                        _index = similar_traces.traces.index(tr)
+                        try:
+                            new_pick.phase_hint = sorted(
+                                template_pick,
+                                key=lambda p: p.time)[_index].phase_hint
+                        except IndexError:
+                            Logger.error(f"No pick for trace: {tr.id}")
                 ev.picks.append(new_pick)
         if estimate_origin and template is not None\
                 and template.event is not None:
