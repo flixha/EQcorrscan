@@ -392,7 +392,7 @@ def _get_pick_for_station(event, station, channel, use_s_picks):
     picks = [p for p in event.picks if p.waveform_id.station_code == station
              and p.waveform_id.channel_code == channel]
     if len(picks) == 0:
-        Logger.info("No pick for {0}".format(station))
+        Logger.debug("No pick for {0}".format(station))
         return None
     picks.sort(key=lambda p: p.time)
     for pick in picks:
@@ -449,7 +449,7 @@ def _get_signal_and_noise(stream, event, seed_id, noise_window,
     pick = _get_pick_for_station(
         event=event, station=station, channel=channel, use_s_picks=use_s_picks)
     if pick is None:
-        Logger.error("No pick for {0}".format(station))
+        Logger.debug("No pick for {0}".format(station))
         return None, None, None
     tr = stream.select(id=seed_id).merge()
     if len(tr) == 0:
@@ -551,7 +551,7 @@ def relative_amplitude(st1, st2, event1, event2, noise_window=(-20, -1),
         noise1 = noise1 or noise2
         noise2 = noise2 or noise1
         if noise1 is None or noise2 is None:
-            Logger.info("Insufficient data for noise to be estimated for "
+            Logger.debug("Insufficient data for noise to be estimated for "
                         "{0}".format(seed_id))
             continue
         if signal1 is None or signal2 is None:
@@ -560,7 +560,7 @@ def relative_amplitude(st1, st2, event1, event2, noise_window=(-20, -1),
         snr1 = np.nan_to_num(signal1 / noise1)
         snr2 = np.nan_to_num(signal2 / noise2)
         if snr1 < min_snr or snr2 < min_snr:
-            Logger.info("SNR (event1: {0:.2f}, event2: {1:.2f} too low "
+            Logger.debug("SNR (event1: {0:.2f}, event2: {1:.2f} too low "
                         "for {2}".format(snr1, snr2, seed_id))
             continue
         ratio = std2 / std1
@@ -677,7 +677,7 @@ def relative_magnitude(st1, st2, event1, event2, noise_window=(-20, -1),
         else:
             cc = correlations.get(seed_id, 0.0)
         if cc < min_cc:
-            Logger.info(
+            Logger.debug(
                 f"Correlation of {cc} less than {min_cc} for {seed_id}, "
                 "skipping.")
             continue
@@ -689,7 +689,7 @@ def relative_magnitude(st1, st2, event1, event2, noise_window=(-20, -1),
         # This is equation 10 from Schaff & Richards 2014:
         rel_mag = math.log10(amplitude_ratio) + math.log10(
             math.sqrt((1 + 1 / snr_y**2) / (1 + 1 / snr_x**2)) * cc)
-        Logger.info(f"Channel: {seed_id} Magnitude change {rel_mag:.2f}")
+        Logger.debug(f"Channel: {seed_id} Magnitude change {rel_mag:.2f}")
         relative_magnitudes.update({seed_id: rel_mag})
     if return_correlations:
         return relative_magnitudes, correlations
@@ -836,7 +836,7 @@ def amp_pick_event(event, st, inventory, chans=('Z',), var_wintype=True,
     # For each station cut the window
     for sta in {p.waveform_id.station_code for p in picks}:
         for chan in chans:
-            Logger.info(f'Working on {sta} {chan}')
+            Logger.debug(f'Working on {sta} {chan}')
             tr = st.select(station=sta, component=chan)
             if not tr:
                 Logger.warning(f'{sta} {chan} not found in the stream.')
@@ -936,7 +936,7 @@ def amp_pick_event(event, st, inventory, chans=('Z',), var_wintype=True,
             if amplitude == 0.0:
                 continue
             if snr < min_snr:
-                Logger.info(
+                Logger.debug(
                     f'Signal to noise ratio of {snr} is below threshold.')
                 continue
             if plot:
@@ -945,8 +945,8 @@ def amp_pick_event(event, st, inventory, chans=('Z',), var_wintype=True,
                 plt.scatter(tr.stats.sampling_rate * (delay + period / 2),
                             trough)
                 plt.show()
-            Logger.info(f'Amplitude picked: {amplitude}')
-            Logger.info(f'Signal-to-noise ratio is: {snr}')
+            Logger.debug(f'Amplitude picked: {amplitude}')
+            Logger.debug(f'Signal-to-noise ratio is: {snr}')
             # Note, amplitude should be in meters at the moment!
             # Remove the pre-filter response
             if pre_filt:
