@@ -555,7 +555,7 @@ def relative_amplitude(st1, st2, event1, event2, noise_window=(-20, -1),
                         "{0}".format(seed_id))
             continue
         if signal1 is None or signal2 is None:
-            Logger.info("No signal data found for {0}".format(seed_id))
+            Logger.debug("No signal data found for {0}".format(seed_id))
             continue
         snr1 = np.nan_to_num(signal1 / noise1)
         snr2 = np.nan_to_num(signal2 / noise2)
