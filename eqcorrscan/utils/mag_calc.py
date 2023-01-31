@@ -475,6 +475,7 @@ def _get_signal_and_noise(stream, event, seed_id, noise_window,
 
 def relative_amplitude(st1, st2, event1, event2, noise_window=(-20, -1),
                        signal_window=(-.5, 20), min_snr=1.5,
+                       min_amp_ratio_log_std=-1, min_amp_ratio_log_mad_exc=-1,
                        use_s_picks=False):
     """
     Compute the relative amplitudes between two streams.
@@ -537,6 +538,8 @@ def relative_amplitude(st1, st2, event1, event2, noise_window=(-20, -1),
               for p in event1.picks]])
     seed_ids = {tr.id for tr in st1}.intersection({tr.id for tr in st2})
     amplitudes = {}
+    all_snrs_1 = []
+    all_snrs_2 = []
     snrs_1 = {}
     snrs_2 = {}
     for seed_id in seed_ids:
@@ -562,6 +565,8 @@ def relative_amplitude(st1, st2, event1, event2, noise_window=(-20, -1),
         if snr1 < min_snr or snr2 < min_snr:
             Logger.debug("SNR (event1: {0:.2f}, event2: {1:.2f} too low "
                         "for {2}".format(snr1, snr2, seed_id))
+            all_snrs_1.append(snr1)
+            all_snrs_2.append(snr2)
             continue
         ratio = std2 / std1
         Logger.debug("Channel: {0} Relative amplitude: {1:.2f}".format(
@@ -569,6 +574,52 @@ def relative_amplitude(st1, st2, event1, event2, noise_window=(-20, -1),
         amplitudes.update({seed_id: ratio})
         snrs_1.update({seed_id: snr1})
         snrs_2.update({seed_id: snr2})
+    # Check that SNRs that pass thresholds make sense compared to the template
+    # - to avoid that small signals 
+    all_amp_ratios = np.array(
+        [snr1/snr2 for snr1, snr2 in zip(all_snrs_1, all_snrs_2)])
+    amp_ratio_mean = np.mean(all_amp_ratios)
+    amp_ratio_median = np.median(all_amp_ratios)
+    amp_ratio_std = np.std(all_amp_ratios)
+    all_amp_ratio_logs = np.log10(all_amp_ratios)
+    amp_ratio_log_mean = np.mean(all_amp_ratio_logs)
+    amp_ratio_log_std = np.std(all_amp_ratio_logs)
+    amp_ratio_log_median = np.median(all_amp_ratio_logs)
+    amp_ratio_log_mad = np.median(
+        np.abs(np.array(all_amp_ratio_logs) - amp_ratio_log_median))
+    # amp_ratio_mad = np.median(np.abs(all_amp_ratios))
+    # all_amp_ratios - amp_ratio_median
+    rm_seed_ids = []
+    for seed_id in amplitudes.keys():
+        amp_ratio = snrs_1[seed_id] / snrs_2[seed_id]
+        amp_ratio_log = np.log10(amp_ratio)
+        # If the amplitude ratio is much smaller than the average amplitude
+        # ratio, then we are probably just comparing noise to noise.
+        # if abs(amp_ratio - amp_ratio_mean) < 3 * amp_ratio_std:
+        # if amp_ratio - amp_ratio_mean < 3 * amp_ratio_std:
+        if (amp_ratio_log - amp_ratio_log_mean <
+                min_amp_ratio_log_std * amp_ratio_log_std):
+            Logger.debug('Log amplitude ratio %s for trace %s is < %sx '
+                         'standard deviation (%s) for mean of %s, excluding.',
+                         amp_ratio_log, seed_id, min_amp_ratio_log_std,
+                         amp_ratio_log_std, amp_ratio_log_mean)
+            rm_seed_ids.append(seed_id)
+        # if np.abs(amp_ratio - amp_ratio_median) > 5 * amp_ratio_mad:
+        if (amp_ratio_log - amp_ratio_log_median <
+                min_amp_ratio_log_mad_exc * amp_ratio_log_mad):
+        # if amp_ratio - amp_ratio_median < 5 * amp_ratio_mad:
+            Logger.debug(
+                'Normalized log amplitude ratio %s for trace %s is < %sx log '
+                'amp-ratio MAD (%s) for median of %s, excluding.',
+                amp_ratio_log - amp_ratio_log_median, seed_id,
+                min_amp_ratio_log_mad_exc, amp_ratio_log_mad,
+                amp_ratio_log_median)
+            if seed_id not in rm_seed_ids:
+                rm_seed_ids.append(seed_id)
+    for seed_id in rm_seed_ids:
+        amplitudes.pop(seed_id)
+        snrs_1.pop(seed_id)
+        snrs_2.pop(seed_id)
     return amplitudes, snrs_1, snrs_2
 
 
