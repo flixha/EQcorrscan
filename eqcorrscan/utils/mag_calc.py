@@ -475,7 +475,6 @@ def _get_signal_and_noise(stream, event, seed_id, noise_window,
 
 def relative_amplitude(st1, st2, event1, event2, noise_window=(-20, -1),
                        signal_window=(-.5, 20), min_snr=1.5,
-                       min_amp_ratio_log_std=-1, min_amp_ratio_log_mad_exc=-1,
                        use_s_picks=False):
     """
     Compute the relative amplitudes between two streams.
@@ -576,51 +575,103 @@ def relative_amplitude(st1, st2, event1, event2, noise_window=(-20, -1),
         snrs_2.update({seed_id: snr2})
     # Check that SNRs that pass thresholds make sense compared to the template
     # - to avoid that small signals 
+    log_amp_ratio_dict = dict()
     all_amp_ratios = np.array(
         [snr1/snr2 for snr1, snr2 in zip(all_snrs_1, all_snrs_2)])
-    amp_ratio_mean = np.mean(all_amp_ratios)
-    amp_ratio_median = np.median(all_amp_ratios)
-    amp_ratio_std = np.std(all_amp_ratios)
     all_amp_ratio_logs = np.log10(all_amp_ratios)
+    amp_ratio_log_median = np.median(all_amp_ratio_logs)
+    log_amp_ratio_dict['amp_ratio_mean'] = np.mean(all_amp_ratios)
+    log_amp_ratio_dict['amp_ratio_median'] = np.median(all_amp_ratios)
+    log_amp_ratio_dict['amp_ratio_std'] = np.std(all_amp_ratios)
+    log_amp_ratio_dict['all_amp_ratio_logs'] = all_amp_ratio_logs
+    log_amp_ratio_dict['amp_ratio_log_mean'] = np.mean(all_amp_ratio_logs)
+    log_amp_ratio_dict['amp_ratio_log_std'] = np.std(all_amp_ratio_logs)
+    log_amp_ratio_dict['amp_ratio_log_median'] = amp_ratio_log_median
+    log_amp_ratio_dict['amp_ratio_log_mad'] = np.median(
+        np.abs(np.array(all_amp_ratio_logs) - amp_ratio_log_median))
+    for seed_id in amplitudes.keys():
+        amp_ratio = snrs_1[seed_id] / snrs_2[seed_id]
+        amp_ratio_log = np.log10(amp_ratio)
+        log_amp_ratio_dict[seed_id] = amp_ratio_log
+    return amplitudes, snrs_1, snrs_2, log_amp_ratio_dict
+
+
+def _check_relative_magnitude_deviations(
+        log_amp_ratio_dict, relative_magnitudes,
+        min_amp_ratio_log_std=-1, max_amp_ratio_log_std=3,
+        min_amp_ratio_log_mad_exc=-1, max_amp_ratio_log_mad_exc=3, **kwargs):
+    """
+    Internal function to compare the relative amplitude measurements of one
+    event statistically, and sort out outliers according to mean and standard
+    deviation and / or median and median absolute deviation.
+    """
+    # amp_ratio_mad = np.median(np.abs(all_amp_ratios))
+    # all_amp_ratios - amp_ratio_median
+    amp_ratio_log_mean = log_amp_ratio_dict['amp_ratio_log_mean']
+    amp_ratio_log_std = log_amp_ratio_dict['amp_ratio_log_std']
+    amp_ratio_log_median = log_amp_ratio_dict['amp_ratio_log_median']
+    amp_ratio_log_mad = log_amp_ratio_dict['amp_ratio_log_mad']
+    
+    # Filter the statistics-dict for the relative amplitude values that passed
+    # the minimum CC threshold:
+    all_amp_ratio_logs = []
+    all_amp_ratios = []
+    seed_ids = relative_magnitudes.keys()
+    for seed_id in seed_ids:
+        all_amp_ratio_logs.append(log_amp_ratio_dict[seed_id])
+        all_amp_ratios.append(10 ** (log_amp_ratio_dict[seed_id]))
+    # Need to recompute statistics for the remaining relative amplitude values
+    log_amp_ratio_dict['amp_ratio_mean'] = np.mean(all_amp_ratios)
+    log_amp_ratio_dict['amp_ratio_median'] = np.median(all_amp_ratios)
+    log_amp_ratio_dict['amp_ratio_std'] = np.std(all_amp_ratios)
+    all_amp_ratio_logs = all_amp_ratio_logs
     amp_ratio_log_mean = np.mean(all_amp_ratio_logs)
     amp_ratio_log_std = np.std(all_amp_ratio_logs)
     amp_ratio_log_median = np.median(all_amp_ratio_logs)
     amp_ratio_log_mad = np.median(
         np.abs(np.array(all_amp_ratio_logs) - amp_ratio_log_median))
-    # amp_ratio_mad = np.median(np.abs(all_amp_ratios))
-    # all_amp_ratios - amp_ratio_median
+
     rm_seed_ids = []
-    for seed_id in amplitudes.keys():
-        amp_ratio = snrs_1[seed_id] / snrs_2[seed_id]
-        amp_ratio_log = np.log10(amp_ratio)
+    for seed_id in relative_magnitudes.keys():
+        # amp_ratio = snrs_1[seed_id] / snrs_2[seed_id]
+        # amp_ratio_log = np.log10(amp_ratio)
+        amp_ratio_log = log_amp_ratio_dict[seed_id]
         # If the amplitude ratio is much smaller than the average amplitude
         # ratio, then we are probably just comparing noise to noise.
         # if abs(amp_ratio - amp_ratio_mean) < 3 * amp_ratio_std:
         # if amp_ratio - amp_ratio_mean < 3 * amp_ratio_std:
-        if (amp_ratio_log - amp_ratio_log_mean <
-                min_amp_ratio_log_std * amp_ratio_log_std):
-            Logger.debug('Log amplitude ratio %s for trace %s is < %sx '
-                         'standard deviation (%s) for mean of %s, excluding.',
+        amp_std_exc = amp_ratio_log - amp_ratio_log_mean
+        min_std_thresh = min_amp_ratio_log_std * amp_ratio_log_std
+        max_std_thresh = max_amp_ratio_log_std * amp_ratio_log_std
+        if (amp_std_exc < min_std_thresh or amp_std_exc > max_std_thresh):
+            Logger.debug('Log amplitude ratio %.3f for trace %s is <%.1fx or '
+                         '>%.1fx standard deviation (%.3f) for mean of %.3f,'
+                         ' excluding.',
                          amp_ratio_log, seed_id, min_amp_ratio_log_std,
-                         amp_ratio_log_std, amp_ratio_log_mean)
+                         max_amp_ratio_log_std, amp_ratio_log_std,
+                         amp_ratio_log_mean)
             rm_seed_ids.append(seed_id)
         # if np.abs(amp_ratio - amp_ratio_median) > 5 * amp_ratio_mad:
-        if (amp_ratio_log - amp_ratio_log_median <
-                min_amp_ratio_log_mad_exc * amp_ratio_log_mad):
+        amp_mad_exc = amp_ratio_log - amp_ratio_log_median
+        min_mad_thresh = min_amp_ratio_log_mad_exc * amp_ratio_log_mad
+        max_mad_thresh = max_amp_ratio_log_mad_exc * amp_ratio_log_mad
+        if (amp_mad_exc < min_mad_thresh or amp_mad_exc > max_mad_thresh):
         # if amp_ratio - amp_ratio_median < 5 * amp_ratio_mad:
             Logger.debug(
-                'Normalized log amplitude ratio %s for trace %s is < %sx log '
-                'amp-ratio MAD (%s) for median of %s, excluding.',
-                amp_ratio_log - amp_ratio_log_median, seed_id,
-                min_amp_ratio_log_mad_exc, amp_ratio_log_mad,
-                amp_ratio_log_median)
+                'Normalized log amplitude ratio %.3f for trace %s is <%.1fx or'
+                ' >%.1fx log amp-ratio MAD (%.3f) for median of %.3f, '
+                'excluding.', amp_ratio_log - amp_ratio_log_median, seed_id,
+                min_amp_ratio_log_mad_exc, max_amp_ratio_log_mad_exc,
+                amp_ratio_log_mad, amp_ratio_log_median)
             if seed_id not in rm_seed_ids:
                 rm_seed_ids.append(seed_id)
+    # remove relative amplitudes and relative_magnitudes that do not meed crit.
     for seed_id in rm_seed_ids:
-        amplitudes.pop(seed_id)
-        snrs_1.pop(seed_id)
-        snrs_2.pop(seed_id)
-    return amplitudes, snrs_1, snrs_2
+        # amplitudes.pop(seed_id)
+        relative_magnitudes.pop(seed_id)
+        # snrs_1.pop(seed_id)
+        # snrs_2.pop(seed_id)
+    return relative_magnitudes
 
 
 # Magnitude estimation functions
@@ -628,7 +679,8 @@ def relative_amplitude(st1, st2, event1, event2, noise_window=(-20, -1),
 def relative_magnitude(st1, st2, event1, event2, noise_window=(-20, -1),
                        signal_window=(-.5, 20), min_snr=5.0, min_cc=0.7,
                        use_s_picks=False, correlations=None, shift=.2,
-                       return_correlations=False, correct_mag_bias=True):
+                       return_correlations=False, correct_mag_bias=True,
+                       check_rel_amp_deviations=False, **kwargs):
     """
     Compute the relative magnitudes between two events.
 
@@ -701,10 +753,11 @@ def relative_magnitude(st1, st2, event1, event2, noise_window=(-20, -1),
     if correlations is None:
         correlations = {}
         compute_correlations = True
-    relative_amplitudes, snrs_1, snrs_2 = relative_amplitude(
-        st1=st1, st2=st2, event1=event1, event2=event2,
-        noise_window=noise_window, signal_window=signal_window,
-        min_snr=min_snr, use_s_picks=use_s_picks)
+    relative_amplitudes, snrs_1, snrs_2, log_amp_ratio_dict = (
+        relative_amplitude(
+            st1=st1, st2=st2, event1=event1, event2=event2,
+            noise_window=noise_window, signal_window=signal_window,
+            min_snr=min_snr, use_s_picks=use_s_picks))
     for seed_id, amplitude_ratio in relative_amplitudes.items():
         tr1 = st1.select(id=seed_id)[0]
         tr2 = st2.select(id=seed_id)[0]
@@ -742,6 +795,9 @@ def relative_magnitude(st1, st2, event1, event2, noise_window=(-20, -1),
             math.sqrt((1 + 1 / snr_y**2) / (1 + 1 / snr_x**2)) * cc)
         Logger.debug(f"Channel: {seed_id} Magnitude change {rel_mag:.2f}")
         relative_magnitudes.update({seed_id: rel_mag})
+    if check_rel_amp_deviations:
+        relative_magnitudes = _check_relative_magnitude_deviations(
+            log_amp_ratio_dict, relative_magnitudes, **kwargs)
     if return_correlations:
         return relative_magnitudes, correlations
     return relative_magnitudes
