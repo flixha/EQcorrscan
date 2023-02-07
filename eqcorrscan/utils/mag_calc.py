@@ -29,6 +29,7 @@ from obspy.core.event import (
     Amplitude, Pick, WaveformStreamID, Origin, ResourceIdentifier)
 from obspy.geodetics import degrees2kilometers
 
+from eqcorrscan.utils.pre_processing import _quick_copy_stream
 
 Logger = logging.getLogger(__name__)
 
@@ -532,7 +533,8 @@ def relative_amplitude(st1, st2, event1, event2, noise_window=(-20, -1),
     if not use_s_picks:
         event1.picks = [p for p in event1.picks if p.phase_hint[0] != "S"]
         st1 = Stream(
-            [tr for tr in st1.copy() if (tr.stats.station, tr.stats.channel) in
+            [tr for tr in _quick_copy_stream(st1)
+             if (tr.stats.station, tr.stats.channel) in
              [(p.waveform_id.station_code, p.waveform_id.channel_code)
               for p in event1.picks]])
     seed_ids = {tr.id for tr in st1}.intersection({tr.id for tr in st2})
@@ -939,7 +941,7 @@ def amp_pick_event(event, st, inventory, chans=('Z',), var_wintype=True,
         Logger.warning('No P or S picks found')
         return event
 
-    st = st.copy().merge()  # merge the data, just in case! Work on a copy.
+    st = _quick_copy_stream(st).merge()  # merge the data, just in case! Work on a copy.
     # For each station cut the window
     for sta in {p.waveform_id.station_code for p in picks}:
         for chan in chans:
