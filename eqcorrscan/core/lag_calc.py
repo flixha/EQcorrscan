@@ -192,11 +192,8 @@ def _concatenate_and_correlate(streams, template, cores, **kwargs):
     for tr in template:
         if tr.id in chans:
             _template += tr
+    xcorr_func = get_stream_xcorr(name_or_func="fftw")
     # Do correlations
-    try:
-        xcorr_func = get_stream_xcorr(kwargs.get("xcorr_func"))
-    except KeyError:
-        xcorr_func = get_stream_xcorr(name_or_func="fftw")
     ccc, _, chan_order = xcorr_func(
         templates=[_template], stream=concatenated_stream, stack=False,
         cores=cores)
@@ -226,6 +223,7 @@ def _concatenate_and_correlate(streams, template, cores, **kwargs):
 
 def xcorr_pick_family(family, stream, shift_len=0.2, min_cc=0.4,
                       min_cc_from_mean_cc_factor=None,
+                      min_cc_from_median_cc_factor=None,
                       all_vert=False, all_horiz=False, vertical_chans=['Z'],
                       horizontal_chans=['E', 'N', '1', '2'],
                       cores=1, interpolate=False,
@@ -312,7 +310,8 @@ def xcorr_pick_family(family, stream, shift_len=0.2, min_cc=0.4,
                        "Proceeding anyway. HINT: Make sure SEED IDs match")
     # Correlation function needs a list of streams, we need to maintain order.
     ccc, chans = _concatenate_and_correlate(
-        streams=detect_streams, template=family.template.st, cores=cores)
+        streams=detect_streams, template=family.template.st, cores=cores,
+        **kwargs)
     for i, detection_id in enumerate(detection_ids):
         detection = [d for d in family.detections if d.id == detection_id][0]
         correlations = ccc[i]
@@ -329,8 +328,41 @@ def xcorr_pick_family(family, stream, shift_len=0.2, min_cc=0.4,
             cc_thresh = min(abs(detection.detect_val / detection.no_chans
                                 * min_cc_from_mean_cc_factor),
                             min_cc)
-            Logger.info('Setting minimum cc-threshold for detection %s to %s',
-                        detection.id, str(cc_thresh))
+            Logger.info('Setting minimum cc-threshold from channel mean for '
+                        'detection %s to %s', detection.id, str(cc_thresh))
+        elif min_cc_from_median_cc_factor is not None:
+            # Get the actual number of channels used in lag-calc (not detect)
+            n_used_chans = [chan for chan in chans[i] if chan.used]
+            # Check maximum CCC sums -at detection time and with shifted traces
+            # TODO: how to handle this when the MAD-threshold is exceeded at a
+            #       negative CC sum?
+            max_sum_index = np.argmax(np.abs(np.sum(correlations, axis=0)))
+            max_cccsum_center = np.sum(correlations[:, max_sum_index])
+            # if absolute_values:
+            #     max_chan_ccs = np.array([
+            #         max(np.abs(correlation)) for correlation in correlations])
+            # else:
+            max_chan_ccs = np.array([
+                max(correlation) for correlation in correlations])
+            max_ccsum_shifted = np.sum(max_chan_ccs)
+            mean_chan_cc = np.mean(max_chan_ccs)
+            median_chan_cc = np.median(max_chan_ccs)
+            # mean vs median vs cc_thresh
+            # 0.27 vs 0.2 vs 0.14
+            # 0.15 vs 0.13 vs 0.11
+            # 0.18 vs 0.17 vs 0.10
+            # 0.14 vs 0.11 vs 0.09
+            # 0.12 vs 0.11 vs 0.06
+            # 0.12 vs 0.10 vs 0.05
+            # 0.12 vs 0.09 vs 0.05
+            # import matplotlib.pyplot as plt
+            # plt.hist([max(np.abs(correlation)) for correlation in correlations],
+            #          bins=49)
+            # plt.show()
+            cc_thresh = min([median_chan_cc * min_cc_from_median_cc_factor,
+                             min_cc])
+            Logger.info('Setting minimum cc-threshold from channel median for '
+                        'detection %s to %s', detection.id, str(cc_thresh))
         else:
             cc_thresh = min_cc
         for correlation, stachan in zip(correlations, picked_chans):
