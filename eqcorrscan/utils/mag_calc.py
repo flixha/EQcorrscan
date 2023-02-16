@@ -682,6 +682,8 @@ def relative_magnitude(st1, st2, event1, event2, noise_window=(-20, -1),
                        signal_window=(-.5, 20), min_snr=5.0, min_cc=0.7,
                        use_s_picks=False, correlations=None, shift=.2,
                        return_correlations=False, correct_mag_bias=True,
+                       min_cc_from_mean_cc_factor=None,
+                       min_cc_from_median_cc_factor=None,
                        check_rel_amp_deviations=False, **kwargs):
     """
     Compute the relative magnitudes between two events.
@@ -782,6 +784,23 @@ def relative_magnitude(st1, st2, event1, event2, noise_window=(-20, -1),
             correlations.update({seed_id: cc})
         else:
             cc = correlations.get(seed_id, 0.0)
+
+    # Now all correlations are collected
+    chan_ccs = np.array([cc for key, cc in correlations.items()])
+    if min_cc_from_mean_cc_factor is not None:
+        min_cc = min(abs(np.mean(chan_ccs) * min_cc_from_mean_cc_factor),
+                     min_cc)
+        Logger.debug('Setting minimum cc-threshold from mean CC for relative '
+                     'magnitude to %.5f', min_cc)
+    elif min_cc_from_median_cc_factor is not None:
+        median_chan_cc = np.median(chan_ccs)
+        min_cc = min([median_chan_cc * min_cc_from_median_cc_factor, min_cc])
+        Logger.debug('Setting minimum cc-threshold from median CC for relative'
+                     ' magnitude to %.5f', min_cc)
+
+    # Loop over seed-ids again when all correlations are available
+    for seed_id, amplitude_ratio in relative_amplitudes.items():
+        cc = correlations.get(seed_id, 0.0)
         if cc < min_cc:
             Logger.debug(
                 f"Correlation of {cc} less than {min_cc} for {seed_id}, "
