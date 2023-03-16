@@ -521,11 +521,12 @@ def relative_amplitude(st1, st2, event1, event2, noise_window=(-20, -1),
         Note that noise and signal windows are relative to pick-times, so using
         an S-pick might result in a noise window including P-energy.
 
-    :rtype: dict, dict, dict
+    :rtype: dict, dict, dict, dict
     :return:
         Dictionary of relative amplitudes keyed by seed-id
         Dictionary of signal-to-noise ratios for st1
         Dictionary of signal-to-noise ratios for st2
+        Dictionary of statistic properties of the log relative amplitudes
     """
     # keep input safe
     event1 = event1.copy()

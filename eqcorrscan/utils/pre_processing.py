@@ -1057,7 +1057,7 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
             if len(template_channel) <= channel_index:
                 # out_template[channel_number].data = nan_channel  # quicker:
                 out_template.traces[channel_number].__dict__[
-                    'data'] = copy.deepcopy(nan_channel)
+                    'data'] = np.copy(nan_channel)
                 out_template.traces[channel_number].stats.__dict__[
                     'npts'] = template_length
                 out_template.traces[channel_number].stats.__dict__[
@@ -1067,7 +1067,7 @@ def _prep_data_for_correlation(stream, templates, template_names=None,
                         round(template_starttime.ns
                               + (template_length / samp_rate) * 1e9)))
             else:
-                out_template.traces[channel_number] = template_channel[
+                out_template.traces[channel_number] = template_channel.traces[
                     channel_index]
 
         # If a template-trace matches a NaN-trace in the stream , then set
