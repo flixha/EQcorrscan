@@ -261,7 +261,8 @@ def dist_calc(loc1, loc2):
     return dist
 
 
-def _sim_WA(trace, inventory, water_level, velocity=False):
+def _sim_WA(trace, inventory, water_level, velocity=False,
+            remove_response=True, **kwargs):
     """
     Remove the instrument response from a trace and simulate a Wood-Anderson.
 
@@ -299,13 +300,15 @@ def _sim_WA(trace, inventory, water_level, velocity=False):
         paz_wa['zeros'] = [0 + 0j, 0 + 0j]
     # De-trend data
     trace.detrend('simple')
-    # Remove response to Velocity
-    try:
-        trace.remove_response(
-            inventory=inventory, output="VEL", water_level=water_level)
-    except Exception:
-        Logger.error(f"No response for {trace.id} at {trace.stats.starttime}")
-        return None
+    if remove_response:
+        # Remove response to Velocity
+        try:
+            trace.remove_response(
+                inventory=inventory, output="VEL", water_level=water_level,
+                **kwargs)
+        except Exception:
+            Logger.error(f"No response for {trace.id} at {trace.stats.starttime}")
+            return None
     # Simulate Wood Anderson
     trace.data = seis_sim(trace.data, trace.stats.sampling_rate,
                           paz_remove=None, paz_simulate=paz_wa,
@@ -829,7 +832,8 @@ def amp_pick_event(event, st, inventory, chans=('Z',), var_wintype=True,
                    winlen=0.9, pre_pick=0.2, pre_filt=True, lowcut=1.0,
                    highcut=20.0, corners=4, min_snr=1.0, plot=False,
                    remove_old=False, ps_multiplier=0.34, velocity=False,
-                   water_level=0, iaspei_standard=False):
+                   pick_ps_max=False, water_level=0, iaspei_standard=False,
+                   **kwargs):
     """
     Pick amplitudes for local magnitude for a single event.
 
@@ -875,6 +879,11 @@ def amp_pick_event(event, st, inventory, chans=('Z',), var_wintype=True,
         Length of window, see above parameter, if var_wintype is False then
         this will be in seconds, otherwise it is the multiplier to the
         p-s time, defaults to 0.9.
+    :type pick_ps_max: bool
+    :param pick_ps_max:
+        If True, will pick the maximum amplitude in the P- and the S-window
+        and retain the larger amplitude (default: False, this option is e.g.
+        for proper picking of Pn / Sn arrival-based magnitude scales).
     :type pre_pick: float
     :param pre_pick:
         Time before the s-pick to start the cut window, defaults to 0.2.
@@ -977,7 +986,7 @@ def amp_pick_event(event, st, inventory, chans=('Z',), var_wintype=True,
                 tr.filter('bandpass', freqmin=lowcut, freqmax=highcut,
                           corners=corners)
             tr = _sim_WA(tr, inventory, water_level=water_level,
-                         velocity=velocity)
+                         velocity=velocity, **kwargs)
             if tr is None:  # None returned when no matching response is found
                 continue
 
@@ -1048,18 +1057,62 @@ def amp_pick_event(event, st, inventory, chans=('Z',), var_wintype=True,
                     continue
                 trim_start = s_time - pre_pick
                 trim_end = s_time + winlen
+            p_trim_start = None
+            if pick_ps_max and p_pick:
+                p_trim_start = p_pick.time
+                if var_wintype:
+                    # Shorten window length for P-arrival
+                    p_trim_end = (p_pick.time + (s_time - p_pick.time) *
+                                  winlen * (1 - ps_multiplier))
+                else:
+                    p_trim_end = p_pick.time + winlen
+
+            # Pick P-amplitude if required
+            amplitude_p = period_p = delay_p = peak_p = trough_p = None
+            if pick_ps_max and p_trim_start:
+                tr_c = tr.copy().trim(p_trim_start, p_trim_end)
+                if len(tr.data) <= 10:
+                    Logger.warning(f'Insufficient data for {sta}')
+                else:
+                    # Get the amplitude
+                    try:
+                        (amplitude_p, period_p, delay_p, peak_p, trough_p
+                         ) = _max_p2t(tr_c.data, tr_c.stats.delta,
+                                      return_peak_trough=True)
+                    except ValueError as e:
+                        Logger.error(e)
+                        Logger.error(f'No P-amplitude picked for tr {tr_c.id}')
+            # Pick S-amplitude
             tr = tr.trim(trim_start, trim_end)
             if len(tr.data) <= 10 or np.any(np.isnan(tr.data)):
                 Logger.warning(f'Insufficient data for {sta}')
-                continue
+                if amplitude_p is None:
+                    continue
             # Get the amplitude
+            amplitude = period = delay = peak = trough = None
             try:
                 amplitude, period, delay, peak, trough = _max_p2t(
                     tr.data, tr.stats.delta, return_peak_trough=True)
             except ValueError as e:
                 Logger.error(e)
                 Logger.error(f'No amplitude picked for tr {tr.id}')
-                continue
+                if amplitude_p is None:
+                    continue
+            # Get maximum of P and S amplitudes
+            if pick_ps_max:
+                choose_p = False
+                if amplitude_p is not None and amplitude is not None:
+                    if amplitude_p > amplitude:
+                        choose_p = True
+                elif amplitude_p is not None:  # and amplitude is None
+                    choose_p = True
+                if choose_p:
+                    amplitude = amplitude_p
+                    period = period_p
+                    delay = delay_p
+                    peak = peak_p
+                    trough = trough_p
+                    tr = tr_c
             # Calculate the normalized noise amplitude
             snr = amplitude / np.sqrt(np.mean(np.square(tr.data)))
             if amplitude == 0.0:
