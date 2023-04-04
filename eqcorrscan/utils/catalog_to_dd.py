@@ -12,7 +12,6 @@ import numpy as np
 import logging
 from collections import namedtuple, defaultdict, Counter
 from multiprocessing import cpu_count, Pool, shared_memory
-import uuid
 
 from obspy import UTCDateTime, Stream
 from obspy.core.event import (
@@ -496,21 +495,40 @@ def _prep_horiz_picks(catalog, stream_dict, event_id_mapper):
 
 def stream_dict_to_shared_mem(stream_dict):
     """
+    Move the data of streams from a dict of (key, obspy.stream) into shared
+    memory so that the data can be retrieved by multiple processes in parallel.
+    This can help speed up parallel execution because the initiation of each
+    worker process becomes cheaper (less data to transfer). For now this only
+    puts the numpy array in trace.data into shared memory (because it's easy).
+
+    :type stream_dict: dict of (key, `obspy.stream`)
+    :param stream_dict: dict of streams that should be moved to shared memory
+
+    :returns: stream_dict, shm_name_list, shm_data_shapes, shm_data_dtypes
+
+    :rtype: dict
+    :return: Dictionary streams that were moved to shared memory
+    :rtype: list
+    :return: List of names to the shared memory address for each trace.
+    :rtype: list
+    :return:
+        List of numpy-array shaped for each trace-data array in shared memory.
+    :rtype: list
+    :return: List of data types for each trace-data-array in shared memory.
+
     """
     shm_name_list = []
     shm_data_shapes = []
     shm_data_dtypes = []
+    shm_references = []
     for (key, stream) in stream_dict.items():
         for tr in stream:
             data_array = tr.data
-            # Create valid filename for shared memory from resource ID and trac
-            shm_name = str(key) + tr.id + str(tr.stats.starttime)
-            shm_name = shm_name.replace('/', '_').replace(':', '+')
-            # make the name filename unique
-            shm_name = shm_name + '_' + str(uuid.uuid4())
+            # Let SharedMemory create suitable filename itself:
             shm = shared_memory.SharedMemory(
-                name=shm_name, create=True, size=data_array.nbytes)
-            shm_name_list.append(shm_name)
+                create=True, size=data_array.nbytes)
+            shm_name_list.append(shm.name)
+            shm_references.append(shm)
             # Now create a NumPy array backed by shared memory
             shm_data_shape = data_array.shape
             shm_data_dtype = data_array.dtype
@@ -520,12 +538,13 @@ def stream_dict_to_shared_mem(stream_dict):
             shared_data_array[:] = data_array[:]
             # tr.data = shared_data_array
             tr.data = np.array([])
-            tr.shared_memory_name = shm_name
+            tr.shared_memory_name = shm.name
             shm_data_shapes.append(shm_data_shape)
             shm_data_dtypes.append(shm_data_dtype)
     shm_data_shapes = list(set(shm_data_shapes))
     shm_data_dtypes = list(set(shm_data_dtypes))
-    return stream_dict, shm_name_list, shm_data_shapes, shm_data_dtypes
+    return (stream_dict, shm_name_list, shm_references, shm_data_shapes,
+            shm_data_dtypes)
 
 
 def compute_differential_times(catalog, correlation, stream_dict=None,
@@ -581,6 +600,11 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
         Maximum number of workers for parallel correlation of traces insted of
         events. If None then all threads will be used (but can only be used
         when max_workers = 1).
+    :type use_shared_memory: bool
+    :param use_shared_memory:
+        Whether to move trace data arrays into shared memory for computing
+        trace correlations. Can speed up total execution time by ~20 % for
+        hypodd-correlations with a lot of clustered seismicity.
     :type weight_by_square: bool
     :param weight_by_square:
         Whether to compute correlation weights as the square of the maximum
@@ -661,7 +685,8 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
                             for master_filter in distance_filter)
             # Move trace data into shared memory
             if use_shared_memory:
-                shm_stream_dict, shm_name_list, shm_data_shapes, shm_dtypes = (
+                (shm_stream_dict, shm_name_list, shm_references,
+                 shm_data_shapes, shm_dtypes) = (
                     stream_dict_to_shared_mem(stream_dict))
                 if len(shm_data_shapes) == 1 and len(shm_dtypes) == 1:
                     shm_data_shape = shm_data_shapes[0]
