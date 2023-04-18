@@ -570,9 +570,11 @@ def relative_amplitude(st1, st2, event1, event2, noise_window=(-20, -1),
         if snr1 < min_snr or snr2 < min_snr:
             Logger.debug("SNR (event1: {0:.2f}, event2: {1:.2f} too low "
                         "for {2}".format(snr1, snr2, seed_id))
-            all_snrs_1.append(snr1)
-            all_snrs_2.append(snr2)
+            # all_snrs_1.append(snr1)
+            # all_snrs_2.append(snr2)
             continue
+        all_snrs_1.append(snr1)
+        all_snrs_2.append(snr2)
         ratio = std2 / std1
         Logger.debug("Channel: {0} Relative amplitude: {1:.2f}".format(
             seed_id, ratio))
@@ -580,10 +582,13 @@ def relative_amplitude(st1, st2, event1, event2, noise_window=(-20, -1),
         snrs_1.update({seed_id: snr1})
         snrs_2.update({seed_id: snr2})
     # Check that SNRs that pass thresholds make sense compared to the template
-    # - to avoid that small signals 
+    # - to avoid that noise correlations cause huge relative amplitudes (i.e.,
+    #   when the template signal is already weak, then it should not be
+    #   possible to compute a large delta-amplitude / magnitude).
     log_amp_ratio_dict = dict()
     all_amp_ratios = np.array(
-        [snr1/snr2 for snr1, snr2 in zip(all_snrs_1, all_snrs_2)])
+        [snr1/snr2 for snr1, snr2 in zip(all_snrs_1, all_snrs_2)
+         if not np.isnan(snr1/snr2) and not np.isinf(snr1/snr2)])
     all_amp_ratio_logs = np.log10(all_amp_ratios)
     amp_ratio_log_median = np.median(all_amp_ratio_logs)
     log_amp_ratio_dict['amp_ratio_mean'] = np.mean(all_amp_ratios)
@@ -605,11 +610,51 @@ def relative_amplitude(st1, st2, event1, event2, noise_window=(-20, -1),
 def _check_relative_magnitude_deviations(
         log_amp_ratio_dict, relative_magnitudes,
         min_amp_ratio_log_std=-1, max_amp_ratio_log_std=3,
-        min_amp_ratio_log_mad_exc=-1, max_amp_ratio_log_mad_exc=3, **kwargs):
+        min_amp_ratio_log_mad_exc=-1, max_amp_ratio_log_mad_exc=3,
+        min_amp_ratio_log_deviation=0.2, **kwargs):
     """
     Internal function to compare the relative amplitude measurements of one
     event statistically, and sort out outliers according to mean and standard
     deviation and / or median and median absolute deviation.
+
+    :type log_amp_ratio_dict: dict
+    :param log_amp_ratio_dict:
+        Dictionary containing the relative amplitudes for all traces and the
+        statistics of the relative amplitudes (e.g., mean, median, std)
+    :type relative_magnitudes: dict
+    :param relative_magnitudes:
+        Dictionary containing the relative magnitudes, keyed by trace-id
+    :type min_amp_ratio_log_std: float
+    :param min_amp_ratio_log_std:
+        The lower threshold of the accepted multiple of the standard deviation
+        of the logarithmic values of the relative amplitudes (should usually be
+        a negative value).
+    :type max_amp_ratio_log_std: float
+    :param max_amp_ratio_log_std:
+        The upper threshold of the accepted multiple of the standard deviation
+        of the logarithmic values of the relative amplitudes.
+    :type min_amp_ratio_log_mad_exc: float
+    :param min_amp_ratio_log_mad_exc:
+        The lower threshold of the accepted multiple of the median absolute
+        deviation of the logarithmic values of the relative amplitudes (should
+        usually be a negative value).
+    :type max_amp_ratio_log_mad_exc: float
+    :param max_amp_ratio_log_mad_exc:
+        The upper threshold of the accepted multiple of the median absolute
+        deviation of the logarithmic values of the relative amplitudes.
+    :type min_amp_ratio_log_deviation:
+    :param min_amp_ratio_log_deviation:
+        The minimum deviation of the the logarithmic relative amplitude that
+        should always be allowed. This value is useful to avoid that the
+        different values for smaller and larger allowed values are skewed for
+        self-detecting events with very small amplitude ratio standard
+        deviations / MAD exceedances. Will be checked against
+        m.._amp_ratio_log_std and m.._amp_ratio_log_mad_exc and the larger
+        allowed range will be used.
+
+    :rtype: dict
+    :return: Dictionary containing the relative amplitudes for all traces that
+             remained after the filtering, keyed by trace-id.
     """
     # amp_ratio_mad = np.median(np.abs(all_amp_ratios))
     # all_amp_ratios - amp_ratio_median
@@ -647,8 +692,10 @@ def _check_relative_magnitude_deviations(
         # if abs(amp_ratio - amp_ratio_mean) < 3 * amp_ratio_std:
         # if amp_ratio - amp_ratio_mean < 3 * amp_ratio_std:
         amp_std_exc = amp_ratio_log - amp_ratio_log_mean
-        min_std_thresh = min_amp_ratio_log_std * amp_ratio_log_std
-        max_std_thresh = max_amp_ratio_log_std * amp_ratio_log_std
+        min_std_thresh = min(min_amp_ratio_log_std * amp_ratio_log_std,
+                             -min_amp_ratio_log_deviation)
+        max_std_thresh = max(max_amp_ratio_log_std * amp_ratio_log_std,
+                             min_amp_ratio_log_deviation)
         if (amp_std_exc < min_std_thresh or amp_std_exc > max_std_thresh):
             Logger.debug('Log amplitude ratio %.3f for trace %s is <%.1fx or '
                          '>%.1fx standard deviation (%.3f) for mean of %.3f,'
@@ -659,8 +706,10 @@ def _check_relative_magnitude_deviations(
             rm_seed_ids.append(seed_id)
         # if np.abs(amp_ratio - amp_ratio_median) > 5 * amp_ratio_mad:
         amp_mad_exc = amp_ratio_log - amp_ratio_log_median
-        min_mad_thresh = min_amp_ratio_log_mad_exc * amp_ratio_log_mad
-        max_mad_thresh = max_amp_ratio_log_mad_exc * amp_ratio_log_mad
+        min_mad_thresh = min(min_amp_ratio_log_mad_exc * amp_ratio_log_mad,
+                             -min_amp_ratio_log_deviation)
+        max_mad_thresh = max(max_amp_ratio_log_mad_exc * amp_ratio_log_mad,
+                             min_amp_ratio_log_deviation)
         if (amp_mad_exc < min_mad_thresh or amp_mad_exc > max_mad_thresh):
         # if amp_ratio - amp_ratio_median < 5 * amp_ratio_mad:
             Logger.debug(
