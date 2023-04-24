@@ -930,10 +930,13 @@ def _hypodd_phase_str(event, event_id_mapper):
         Logger.warning('No time residual in header')
         time_error = 0.0
 
-    z_err = (origin.depth_errors.uncertainty or 0.0) / 1000.
+    z_err = ((origin.depth_errors.uncertainty if origin.depth_errors else 0.0)
+             or 0.0) / 1000.
     # Note that these should be in degrees, but GeoNet uses meters.
-    x_err = (origin.longitude_errors.uncertainty or 0.0) / 1000.
-    y_err = (origin.latitude_errors.uncertainty or 0.0) / 1000.
+    x_err = ((origin.longitude_errors.uncertainty
+              if origin.longitude_errors else 0.0) or 0.0) / 1000.
+    y_err = ((origin.latitude_errors.uncertainty
+              if origin.latitude_errors else 0.0) or 0.0) / 1000.
     x_err = max(x_err, y_err)
 
     event_str = [(
@@ -1091,10 +1094,13 @@ def _hypodd_event_str(event, event_id):
         Logger.warning('No time residual in header')
         time_error = 0.0
 
-    z_err = (origin.depth_errors.uncertainty or 0.0) / 1000.
+    z_err = ((origin.depth_errors.uncertainty if origin.depth_errors else 0.0)
+             or 0.0) / 1000.
     # Note that these should be in degrees, but GeoNet uses meters.
-    x_err = (origin.longitude_errors.uncertainty or 0.0) / 1000.
-    y_err = (origin.latitude_errors.uncertainty or 0.0) / 1000.
+    x_err = ((origin.longitude_errors.uncertainty
+              if origin.longitude_errors else 0.0) or 0.0) / 1000.
+    y_err = ((origin.latitude_errors.uncertainty
+              if origin.latitude_errors else 0.0) or 0.0) / 1000.
     x_err = max(x_err, y_err)
 
     event_str = (
