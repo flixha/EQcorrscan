@@ -15,7 +15,7 @@ import os
 
 from collections import Counter, namedtuple
 
-from obspy import Stream, Trace
+from obspy import Stream, Trace, UTCDateTime
 from obspy.core.event import Catalog
 from obspy.core.event import Event, Pick, WaveformStreamID
 from obspy.core.event import ResourceIdentifier, Comment
@@ -379,7 +379,9 @@ def xcorr_pick_family(family, stream, shift_len=0.2, min_cc=0.4,
                 Logger.error(
                     'Problematic trace, no cross correlation possible')
                 continue
-            picktime = tr.stats.starttime + shift
+            # picktime = tr.stats.starttime + shift
+            picktime = UTCDateTime(ns=int(round(
+                tr.stats.starttime.ns + (shift * 1e9))))
             checksum += cc_max
             used_chans += 1
             if cc_max < cc_thresh:
@@ -492,7 +494,7 @@ def _prepare_data(family, detect_data, shift_len, all_vert=False,
     for key, detect_stream in detect_streams_dict.items():
         # Split to remove trailing or leading masks
         for i in range(len(detect_stream) - 1, -1, -1):
-            trace = detect_stream[i]
+            trace = detect_stream.traces[i]
             if np.ma.is_masked(trace.data):
                 detect_stream.remove(trace)
                 Logger.warning("Masked array found for {0}, not supported, "
