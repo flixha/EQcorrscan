@@ -455,8 +455,7 @@ def _compute_dt_correlations(catalog, master, stream_dict, event_id_mapper,
     # Threshold on min_link
     differential_times = [dt for dt in differential_times_dict.values()
                           if len(dt.obs) >= min_link]
-    Logger.info(
-        f"Correlating {str(master.resource_id)} done.")
+    Logger.debug(f"Correlating {str(master.resource_id)} done.")
     return differential_times
 
 
@@ -572,10 +571,13 @@ def _strip_stream_dict(stream_dict):
     Removes attributes from each trace's stats that are not needed in
     write_correlations and that would slow down the worker startup time in
     multiprocessing
+
+    :type stream_dict: dict
+    :param stream_dict: Dictionary of streams for which stats will be stripped
     """
     if stream_dict is None:
         return stream_dict
-    for key, value in stream_dict.items():
+    for value in stream_dict.values():
         for tr in value:
             if 'extra' in tr.stats.__dict__.keys():
                 tr.stats.__dict__.pop('extra')
@@ -588,34 +590,50 @@ def _strip_stream_dict(stream_dict):
     return stream_dict
 
 
-def _prep_sub_stream_dicts(stream_dict, sparse_catalog):
+def _prep_sub_stream_dicts(
+        stream_dict, sparse_catalog, seed_id_trace_dicts=None,
+        prepare_sub_stream_dicts=True):
     """
     Prepare subsets of the stream dict that can be supplied to the workers and
     that contain only the traces that can be correlated against the master
     stream.
+
+    :type stream_dict: dict
+    :param stream_dict: Dictionary of streams for which subsets will be created
+    :type sparse_catalog: list
+    :param sparse_catalog: List of master events
+    :type seed_id_trace_dicts: dict
+    :param seed_id_trace_dicts:
+        Dictionary of dictionaries with the seed-ids as keys for the traces,
+        for quicker trace retrieval. If None, it will be created here.
+    :type prepare_sub_stream_dicts: bool
+    :param prepare_sub_stream_dicts:
+        If False, the full stream_dict will be returned for each event.
+
+    :rtype: list
+    :return: List of stream_dicts for each master event
     """
-    Logger.info('Preparing %s subsets from the stream_dict for the events.',
-                len(sparse_catalog))
+    if not prepare_sub_stream_dicts:
+        return [stream_dict for event in sparse_catalog]
+    Logger.debug('Preparing %s subsets from the stream_dict for the events.',
+                 len(sparse_catalog))
     stream_dicts = []
-    # Create a dict of dicts with the station names as keys for the traces
-    station_trace_dicts = dict()
-    for key, value in stream_dict.items():
-        station_trace_dict = defaultdict(list)
-        for tr in value:
-            station_trace_dict[tr.stats.station].append(tr)
-        station_trace_dicts[key] = station_trace_dict
-    # station_trace_dicts = {
-    #     key: {tr.stats.station: tr for tr in value}
-    #     for key, value in stream_dict.items() for tr in value}
-    # Select the relevant traces for each master-event
+    # Create a dict of dicts with the seed-ids as keys for the traces
+    if seed_id_trace_dicts is None:
+        seed_id_trace_dicts = dict()
+        for key, value in stream_dict.items():
+            seed_id_trace_dict = defaultdict(list)
+            for tr in value:
+                seed_id_trace_dict[tr.id].append(tr)
+            seed_id_trace_dicts[key] = seed_id_trace_dict
+    # Select the relevant traces for each master event:
     for event in sparse_catalog:
         event_stream = stream_dict[event.resource_id]
-        event_stream_stations = list(set([
-            tr.stats.station for tr in event_stream]))
+        event_stream_seed_ids = list(set([tr.id for tr in event_stream]))
         sub_stream_dict = {}
         for key, value in stream_dict.items():
-            traces = [station_trace_dicts[key][station]
-                      for station in event_stream_stations]
+            traces = [seed_id_trace_dicts[key][seed_id]
+                      for seed_id in event_stream_seed_ids]
             # concatenate all the lists of traces into a stream
             sub_stream = Stream(list(itertools.chain(*traces)))
             if len(sub_stream) > 0:
@@ -776,59 +794,39 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
                     additional_args.update({'shm_dtype': shm_dtype})
                 else:
                     use_shared_memory = False
-            # Create subsets of the stream_dict for each event, so that only
-            # traces which can be correlated against the master are sent to the
-            # workers.
-            stream_dicts = []
+            # Prep creationg of stream_dict subsets for each event, so that
+            # only traces which can be correlated against the master are sent 
+            # to the workers.
+            seed_id_trace_dict = None
             if prepare_sub_stream_dicts:
-                stream_dicts = _prep_sub_stream_dicts(
-                    stream_dict, sparse_catalog)
-            else:
-                for event in sparse_catalog:
-                    stream_dicts.append(stream_dict)
+                # Create a dict of dicts with the seed-IDs as keys for the
+                # traces for each event, used for quicker trace retrieval.
+                seed_id_trace_dicts = dict()
+                for key, value in stream_dict.items():
+                    seed_id_trace_dict = defaultdict(list)
+                    for tr in value:
+                        seed_id_trace_dict[tr.id].append(tr)
+                    seed_id_trace_dicts[key] = seed_id_trace_dict
             additional_args.pop('stream_dict')
 
-            Logger.info('Pool: prep jobs.')
             with pool_boy(Pool, n, cores=max_workers) as pool:
                 # Parallelize over events instead of traces
                 additional_args.update(dict(max_workers=1))
                 results = [
                     pool.apply_async(
                         _compute_dt_correlations,
-                        args=(sub_catalog, master, stream_dict),
+                        args=(sub_catalog, master, _prep_sub_stream_dicts(
+                            stream_dict, [master], seed_id_trace_dicts,
+                            prepare_sub_stream_dicts)[0]),
                         kwds=additional_args)
-                    for sub_catalog, master, stream_dict in zip(
-                        sub_catalogs, sparse_catalog, stream_dicts)
+                    for sub_catalog, master in zip(sub_catalogs,
+                                                   sparse_catalog)
                     if str(master.resource_id) in stream_dict.keys()]
                 Logger.info('Submitted asynchronous jobs to workers.')
                 differential_times = {
                     master.resource_id: result.get()
-                    for master, stream_dict, result in zip(
-                        sparse_catalog, stream_dicts, results)
+                    for master, result in zip(sparse_catalog, results)
                     if str(master.resource_id) in stream_dict.keys()}
-            Logger.info('Pool: done.')
-            
-            
-            # , async_output=True
-            # Logger.info('Joblib: prep workers for jobs.')
-            # additional_args.update(dict(max_workers=1))
-            # results = Parallel(
-            #     n_jobs=max_workers, backend='loky', return_generator=True)(
-            #         delayed(_compute_dt_correlations)(
-            #             sub_catalog, master, **additional_args)
-            #         for sub_catalog, master in zip(sub_catalogs,
-            #                                        sparse_catalog))
-            # Logger.info('Joblib: jobs submitted.')
-            # # Ensure that all the tasks are completed before storing results
-            # results = list(results)
-            # Logger.info('Joblib: get results in dict')
-            # differential_times = {
-            #     master.resource_id: result
-            #     for master, result in zip(sparse_catalog, results)
-            #     if str(master.resource_id) in additional_args[
-            #         "stream_dict"].keys()}
-            # # assert differential_times == differential_times2
-            # Logger.info('Joblib: Got results from workers.')
             # Destroy shared memory
             if use_shared_memory:
                 for shm_name in shm_name_list:
