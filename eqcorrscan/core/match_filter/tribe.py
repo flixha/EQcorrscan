@@ -419,7 +419,7 @@ class Tribe(object):
         shutil.rmtree(temp_dir)
         return self
 
-    def _read_from_folder(self, dirname, cores=1):
+    def _read_from_folder(self, dirname, read_waveforms=True, cores=1):
         """
         Internal folder reader.
 
@@ -461,8 +461,8 @@ class Tribe(object):
             "Missing waveform files for templates"
         template_names = list(template_names)  # Need an ordered object
 
-        Logger.info("Reading tribe streams")
-        if cores > 1 and len(template_names) > 1:
+        if cores > 1 and len(template_names) > 1 and read_waveforms:
+            Logger.info("Reading tribe streams")
             # Need to be able to link stream to template name
             filenames = [t_files_dict.get(t_name)
                          for t_name in template_names
@@ -509,14 +509,17 @@ class Tribe(object):
                 template.event = event_template_name_dict[template.name]
             except KeyError:
                 Logger.warn('No event for template %s in tribe', template.name)
-        for template in templates:
-            template.st = template_streams.get(template.name, None)
-            if not template.st:
-                Logger.error('No waveform for template: ' + template.name)
-                continue
-            # template = template._check_trace_length()
-            template._assign_trace_metadata()
-        self.templates.extend([t for t in templates if t.st])
+        if read_waveforms:
+            for template in templates:
+                template.st = template_streams.get(template.name, None)
+                if not template.st:
+                    Logger.error('No waveform for template: ' + template.name)
+                    continue
+                # template = template._check_trace_length()
+                template._assign_trace_metadata()
+            self.templates.extend([t for t in templates if t.st])
+        else:
+            self.templates.extend([t for t in templates])
         return
 
     def _assign_trace_metadata(self, template):
