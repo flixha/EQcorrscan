@@ -11,9 +11,10 @@ Functions to generate hypoDD input files from catalogs.
 import numpy as np
 import logging
 from collections import namedtuple, defaultdict, Counter
-from multiprocessing import cpu_count, Pool, shared_memory
+from multiprocessing import cpu_count, Pool, shared_memory, Lock #, Array
 import uuid
 import itertools
+from operator import itemgetter
 
 from obspy import UTCDateTime, Stream
 from obspy.core.event import (
@@ -28,6 +29,7 @@ Logger = logging.getLogger(__name__)
 
 SeedPickID = namedtuple("SeedPickID", ["seed_id", "phase_hint"])
 
+lock = Lock()
 
 # Some hypoDD specific event holders - classes were faster than named-tuples
 
@@ -252,17 +254,21 @@ def _prepare_stream(stream, event, extract_len, pre_pick, seed_pick_ids=None,
 
 # Time calculators
 
-def _compute_dt_correlations(catalog, master, stream_dict, event_id_mapper,
+def _compute_dt_correlations(master, catalog, stream_dict, event_id_mapper,
                              min_link, min_cc, extract_len, pre_pick,
                              shift_len, interpolate, max_workers=1,
                              shm_data_shape=None, shm_dtype=None,
                              weight_by_square=True, full_phase_hint=False,
+                             prepare_sub_stream_dicts=False,
                              **kwargs):
     """ Compute cross-correlation delay times. """
     max_workers = max_workers or 1
     Logger.info(
         f"Correlating {str(master.resource_id)} with {len(catalog)} events")
     differential_times_dict = dict()
+    # if stream dict is a list of len 1, return that dict
+    if isinstance(stream_dict, list) and len(stream_dict) == 1:
+        stream_dict = stream_dict[0]
     # Assign trace data from shared memory
     for (key, stream) in stream_dict.items():
         for tr in stream:
@@ -275,6 +281,9 @@ def _compute_dt_correlations(catalog, master, stream_dict, event_id_mapper,
                 # Reconstructing numpy data array
                 sm_data = np.ndarray(
                     shm_data_shape, dtype=shm_dtype, buffer=shm.buf)
+                # lock.acquire()
+                # tr.data = sm_data
+                # lock.release()
                 tr.data = np.zeros_like(sm_data)
                 # Copy data into process memory
                 tr.data[:] = sm_data[:]
@@ -319,8 +328,16 @@ def _compute_dt_correlations(catalog, master, stream_dict, event_id_mapper,
     # Check for overlap
     _stream_event_ids = set(stream_dict.keys())
     if len(event_ids.difference(_stream_event_ids)):
-        Logger.warning(
+        Logger.info(
             f"Missing streams for {event_ids.difference(_stream_event_ids)}")
+        # Missing streams are ok if they were specifically removed because
+        # there are no overlapping traces.
+        # if prepare_sub_stream_dicts:
+        #     Logger.debug(f"Missing streams for "
+        #                  f"{event_ids.difference(_stream_event_ids)}")
+        # else:
+        #     Logger.info(f"Missing streams for "
+        #                 f"{event_ids.difference(_stream_event_ids)}")
         # Just use the event ids that we actually have streams for!
         event_ids = event_ids.intersection(_stream_event_ids)
     # Reorder event_ids according to original order
@@ -449,6 +466,7 @@ def _compute_dt_correlations(catalog, master, stream_dict, event_id_mapper,
                                tt1=master_tts["{0}_{1}".format(
                                    chan.channel[0], phase_hint)],
                                tt2=tt2, weight=weight,
+                               full_phase_hint=full_phase_hint,
                                phase=(phase_hint if full_phase_hint
                                       else phase_hint[0])))
                     differential_times_dict.update({used_event_id: diff_time})
@@ -459,7 +477,7 @@ def _compute_dt_correlations(catalog, master, stream_dict, event_id_mapper,
     return differential_times
 
 
-def _compute_dt(sparse_catalog, master, min_link, event_id_mapper):
+def _compute_dt(sparse_catalog, master, min_link, event_id_mapper, **kwargs):
     """
     Inner function to compute differential times between a catalog and a
     master event.
@@ -591,15 +609,17 @@ def _strip_stream_dict(stream_dict):
 
 
 def _prep_sub_stream_dicts(
-        stream_dict, sparse_catalog, seed_id_trace_dicts=None,
-        prepare_sub_stream_dicts=True):
+        stream_dict, sparse_catalog, sub_catalog=None, seed_id_trace_dicts=None,
+        prepare_sub_stream_dicts=True, distance_filter=None):
     """
     Prepare subsets of the stream dict that can be supplied to the workers and
     that contain only the traces that can be correlated against the master
     stream.
 
     :type stream_dict: dict
-    :param stream_dict: Dictionary of streams for which subsets will be created
+    :param stream_dict:
+        Dictionary of streams for which subsets will be created, keys are
+        event ids and values are the streams.
     :type sparse_catalog: list
     :param sparse_catalog: List of master events
     :type seed_id_trace_dicts: dict
@@ -610,36 +630,77 @@ def _prep_sub_stream_dicts(
     :param prepare_sub_stream_dicts:
         If False, the full stream_dict will be returned for each event.
 
-    :rtype: list
-    :return: List of stream_dicts for each master event
+    :rtype: list, list
+    :return:
+        List of stream_dicts for each master event,
+        sub_catalog filtered by events that can actually be correlated
     """
     if not prepare_sub_stream_dicts:
-        return [stream_dict for event in sparse_catalog]
+        return sub_catalog, [stream_dict for event in sparse_catalog]
     Logger.debug('Preparing %s subsets from the stream_dict for the events.',
                  len(sparse_catalog))
     stream_dicts = []
     # Create a dict of dicts with the seed-ids as keys for the traces
     if seed_id_trace_dicts is None:
-        seed_id_trace_dicts = dict()
-        for key, value in stream_dict.items():
+        seed_id_trace_dicts = defaultdict(defaultdict)
+        for event_id, stream in stream_dict.items():
             seed_id_trace_dict = defaultdict(list)
-            for tr in value:
+            for tr in stream:
                 seed_id_trace_dict[tr.id].append(tr)
-            seed_id_trace_dicts[key] = seed_id_trace_dict
+            seed_id_trace_dicts[event_id] = seed_id_trace_dict
     # Select the relevant traces for each master event:
-    for event in sparse_catalog:
-        event_stream = stream_dict[event.resource_id]
-        event_stream_seed_ids = list(set([tr.id for tr in event_stream]))
+    master_filter = None
+    for i_event, event in enumerate(sparse_catalog):
+        Logger.debug('Preparing subet for master event %s', i_event)
+        if distance_filter is not None:
+            if isinstance(distance_filter[i_event], list):
+                master_filter = distance_filter[i_event]
+            else:  # if only filter for master event is supplied
+                master_filter = distance_filter
+        # event_stream = stream_dict[event.resource_id]
+        # event_stream_seed_ids = list(set([tr.id for tr in event_stream]))
+
+        # Retrieve from dict keys - this seems to be MUCH slower than above
+        # event_stream_seed_ids = list(
+        #     seed_id_trace_dicts[event.__dict__['resource_id']].keys())
+        event_stream_seed_ids = list(
+            seed_id_trace_dicts[event.resource_id].keys())
+
+        # Dictionary of the subcatalog, keyes by event ids
+        if sub_catalog is not None:
+            sub_catalog_dict = {event.resource_id: event
+                                for event in sub_catalog}
+            new_sub_catalog = []
         sub_stream_dict = {}
-        for key, value in stream_dict.items():
-            traces = [seed_id_trace_dicts[key][seed_id]
-                      for seed_id in event_stream_seed_ids]
+        # Always put master stream into sub_stream_dict
+        master_stream = stream_dict[event.resource_id]
+        sub_stream_dict[event.resource_id] = master_stream
+        # Loop through worker events:
+        for j_event, event_id in enumerate(stream_dict.keys()):
+            # Check if the events will be correlated according to distance
+            # limit:
+            if (master_filter is not None and not master_filter[j_event]):
+                continue
+            if sub_catalog is not None:
+                if event_id not in sub_catalog_dict.keys():
+                    continue
+            # traces = [seed_id_trace_dicts[event_id][seed_id]
+            #           for seed_id in event_stream_seed_ids]
+            # Try to speed up dict access with itemgetter:
+            traces = list(itemgetter(*event_stream_seed_ids)(
+                seed_id_trace_dicts[event_id]))
             # concatenate all the lists of traces into a stream
             sub_stream = Stream(list(itertools.chain(*traces)))
+            # sub_stream = Stream([tr for subtr in traces for tr in subtr])
             if len(sub_stream) > 0:
-                sub_stream_dict[key] = sub_stream
+                sub_stream_dict[event_id] = sub_stream
+                new_sub_catalog.append(sub_catalog_dict[event_id])
         stream_dicts.append(sub_stream_dict)
-    return stream_dicts
+    if sub_catalog is not None:
+        sub_catalog = new_sub_catalog
+    Logger.debug('Done preparing %s subsets from the stream_dict',
+                 len(sparse_catalog))
+    return sub_catalog, stream_dicts
 
 
 def compute_differential_times(catalog, correlation, stream_dict=None,
@@ -771,13 +832,10 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
                     continue
                 differential_times.update({
                     master_id: _compute_dt_correlations(
-                        sub_catalog, master, **additional_args)})
+                        master, sub_catalog, **additional_args)})
                 Logger.info(
                     f"Completed correlations for core event {i} of {n}")
         else:
-            sub_catalogs = ([ev for i, ev in enumerate(sparse_catalog)
-                             if master_filter[i]]
-                            for master_filter in distance_filter)
             # Move trace data into shared memory
             if use_shared_memory:
                 for (key, stream) in stream_dict.items():
@@ -801,26 +859,57 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
             if prepare_sub_stream_dicts:
                 # Create a dict of dicts with the seed-IDs as keys for the
                 # traces for each event, used for quicker trace retrieval.
+                # TODO: Check speed for 2 alternatives:
+                #       1. create the subset of the stream-dict on the fly
+                #          when starting the worker. This starts the first
+                #          worker much sooner.
+                #       2. create all subsets of stream-dict before starting
+                #          the worker pool. I think it should not be quicker
+                #          in total, but the test indicated that it could be
+                #          (but comparison wasn't perfect, this one ran alone
+                #           while 1. was competing for resources).
                 seed_id_trace_dicts = dict()
                 for key, value in stream_dict.items():
                     seed_id_trace_dict = defaultdict(list)
                     for tr in value:
                         seed_id_trace_dict[tr.id].append(tr)
                     seed_id_trace_dicts[key] = seed_id_trace_dict
+                _, sub_stream_dicts = _prep_sub_stream_dicts(
+                    stream_dict, sparse_catalog, seed_id_trace_dicts,
+                    prepare_sub_stream_dicts=False,
+                    distance_filter=distance_filter)
+            else:
+                sub_stream_dicts = [stream_dict for event in sparse_catalog]
             additional_args.pop('stream_dict')
+
+            sub_catalogs = (
+                [ev for i, ev in enumerate(sparse_catalog)
+                 if master_filter[i]
+                 and ev.resource_id in sub_stream_dict.keys()]
+                for master_filter, sub_stream_dict in zip(
+                    distance_filter, sub_stream_dicts))
 
             with pool_boy(Pool, n, cores=max_workers) as pool:
                 # Parallelize over events instead of traces
                 additional_args.update(dict(max_workers=1))
+                additional_args.update(dict(
+                    prepare_sub_stream_dicts=prepare_sub_stream_dicts))
                 results = [
                     pool.apply_async(
-                        _compute_dt_correlations,
-                        args=(sub_catalog, master, _prep_sub_stream_dicts(
-                            stream_dict, [master], seed_id_trace_dicts,
-                            prepare_sub_stream_dicts)[0]),
-                        kwds=additional_args)
-                    for sub_catalog, master in zip(sub_catalogs,
-                                                   sparse_catalog)
+                       _compute_dt_correlations,
+                       args=(master, *_prep_sub_stream_dicts(
+                           stream_dict, [master], sub_catalog,
+                           seed_id_trace_dicts, prepare_sub_stream_dicts,
+                           distance_filter=distance_filter[i])),
+                       kwds=additional_args)
+                    for i, (sub_catalog, master) in enumerate(
+                        zip(sub_catalogs, sparse_catalog))
+                    # pool.apply_async(
+                    #     _compute_dt_correlations,
+                    #     args=(master, sub_catalog, sub_stream_dict),
+                    #     kwds=additional_args)
+                    # for sub_catalog, master, sub_stream_dict in zip(
+                    #     sub_catalogs, sparse_catalog, sub_stream_dicts)
                     if str(master.resource_id) in stream_dict.keys()]
                 Logger.info('Submitted asynchronous jobs to workers.')
                 differential_times = {
