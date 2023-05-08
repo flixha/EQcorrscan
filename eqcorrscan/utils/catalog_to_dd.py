@@ -50,7 +50,7 @@ class SparsePick(object):
     def __init__(self, tt, time, time_weight, seed_id, phase_hint,
                  waveform_id):
         self.tt = tt
-        self.time = time
+        self.time = time # if isinstance(time, int) else time.ns
         self.time_weight = time_weight
         self.seed_id = seed_id
         self.phase_hint = phase_hint
@@ -165,6 +165,7 @@ def _make_sparse_event(event, full_phase_hint=False):
             tt=pick.time - origin_time,
             time=pick.time,
             seed_id=pick.waveform_id.get_seed_string(),
+            # seed_id=pick.seed_id,
             # Only use P or S hints.
             phase_hint=(pick.phase_hint if full_phase_hint
                         else pick.phase_hint[0]),
@@ -175,14 +176,15 @@ def _make_sparse_event(event, full_phase_hint=False):
 
 
 def _prepare_stream(stream, event, extract_len, pre_pick, seed_pick_ids=None,
-                    full_phase_hint=False):
+                    full_phase_hint=False, pre_slice_stream=False):
     """
     Slice stream around picks
 
     returns a dictionary of traces keyed by phase_hint.
     """
     seed_pick_ids = seed_pick_ids or {
-        SeedPickID(pick.waveform_id.get_seed_string(), (
+        # SeedPickID(pick.waveform_id.get_seed_string(), (
+        SeedPickID(pick.seed_id, (
             pick.phase_hint if full_phase_hint else pick.phase_hint[0]))
         for pick in event.picks if pick.phase_hint.startswith(("P", "S"))}
     stream_sliced = defaultdict(Stream)
@@ -190,7 +192,8 @@ def _prepare_stream(stream, event, extract_len, pre_pick, seed_pick_ids=None,
     seed_pick_id_dict = defaultdict(list)
     for seed_pick_id in seed_pick_ids:
         for pick in event.picks:
-            if pick.waveform_id.get_seed_string() == seed_pick_id.seed_id:
+            # if pick.waveform_id.get_seed_string() == seed_pick_id.seed_id:
+            if pick.seed_id == seed_pick_id.seed_id:
                 # Picks could be added twice in case there are P and S pick on
                 # same channel.
                 if pick not in seed_pick_id_dict[seed_pick_id.seed_id]:
@@ -210,7 +213,7 @@ def _prepare_stream(stream, event, extract_len, pre_pick, seed_pick_ids=None,
         elif len(pick) == 0:
             continue
         pick = pick[0]
-        if Logger.level == "DEBUG":
+        if Logger.level == "DEBUG" and not pre_slice_stream:
             tr = stream.select(id=seed_pick_id.seed_id).merge()
             if len(tr) == 0:
                 continue
@@ -220,36 +223,49 @@ def _prepare_stream(stream, event, extract_len, pre_pick, seed_pick_ids=None,
                 f"Trimming trace on {tr.id} between {tr.stats.starttime} - "
                 f"{tr.stats.endtime} to {pick.time - pre_pick} - "
                 f"{(pick.time - pre_pick) + extract_len}")
+        # Can save time by using pre-sliced stream
         tr = stream.select(id=seed_pick_id.seed_id)
-        # Clean out trace stats to make slicing quicker
-        for tt in tr:
-            if hasattr(tt.stats, 'processing_info'):
-                tt.stats.processing_info = []
-        tr = tr.slice(
-            starttime=pick.time - pre_pick,
-            endtime=(pick.time - pre_pick) + extract_len).merge()
-        if len(tr) == 0:
-            continue
-        if len(tr) > 1:
-            Logger.error("Multiple traces for {seed_id}".format(
-                seed_id=seed_pick_id.seed_id))
-            continue
-        tr = tr[0]
+        if pre_slice_stream:
+            # Need to select the stream with the right starttime
+            if len(tr) > 1:
+                # Starttime and pick can differ slightly due to sampling
+                time_diff_threshold = tr[0].stats.delta / 2
+                tr = [tt for tt in tr
+                      if abs(tt.stats.starttime - (pick.time - pre_pick))
+                      < time_diff_threshold]
+            if len(tr) == 0:
+                continue
+            tr = tr[0]
+        else:
+            # Clean out trace stats to make slicing quicker
+            for tt in tr:
+                if hasattr(tt.stats, 'processing_info'):
+                    tt.stats.processing_info = []
+            tr = tr.slice(
+                starttime=pick.time - pre_pick,
+                endtime=(pick.time - pre_pick) + extract_len).merge()
+            if len(tr) == 0:
+                continue
+            if len(tr) > 1:
+                Logger.error("Multiple traces for {seed_id}".format(
+                    seed_id=seed_pick_id.seed_id))
+                continue
+            tr = tr[0]
 
-        # If there is one sample too many after this remove the first one
-        # by convention
-        n_samples_intended = extract_len * tr.stats.sampling_rate
-        if len(tr.data) == n_samples_intended + 1:
-            tr.data = tr.data[1:len(tr.data)]
-        # if tr.stats.endtime - tr.stats.starttime != extract_len:
-        if tr.stats.npts < n_samples_intended:
-            Logger.warning(
-                "Insufficient data ({rlen} s) for {tr_id}, discarding. Check "
-                "that your traces are at least of length {length} s, with a "
-                "pre_pick time of at least {prepick} s!".format(
-                    rlen=tr.stats.endtime - tr.stats.starttime,
-                    tr_id=tr.id, length=extract_len, prepick=pre_pick))
-            continue
+            # If there is one sample too many after this remove the first one
+            # by convention
+            n_samples_intended = extract_len * tr.stats.sampling_rate
+            if len(tr.data) == n_samples_intended + 1:
+                tr.data = tr.data[1:len(tr.data)]
+            # if tr.stats.endtime - tr.stats.starttime != extract_len:
+            if tr.stats.npts < n_samples_intended:
+                Logger.warning(
+                    "Insufficient data ({rlen} s) for {tr_id}, discarding. Check "
+                    "that your traces are at least of length {length} s, with a "
+                    "pre_pick time of at least {prepick} s!".format(
+                        rlen=tr.stats.endtime - tr.stats.starttime,
+                        tr_id=tr.id, length=extract_len, prepick=pre_pick))
+                continue
         stream_sliced.update(
             {seed_pick_id.phase_hint:
              stream_sliced[seed_pick_id.phase_hint] + tr})
@@ -264,12 +280,21 @@ def _compute_dt_correlations(master, catalog, stream_dict, event_id_mapper,
                              shm_data_shape=None, shm_dtype=None,
                              weight_by_square=True, full_phase_hint=False,
                              prepare_sub_stream_dicts=False,
+                             pre_slice_stream=False,
                              write_dt_from_workers=False,
                              **kwargs):
     """ Compute cross-correlation delay times. """
     max_workers = max_workers or 1
     Logger.info(
         f"Correlating {str(master.resource_id)} with {len(catalog)} events")
+    # Recreate UTCDateTime for pick time if started as worker process
+    for pick in master.picks:
+        if isinstance(pick.time, int):
+            pick.time = UTCDateTime(ns=pick.time)
+    for event in catalog:
+        for pick in event.picks:
+            if isinstance(pick.time, int):
+                pick.time = UTCDateTime(ns=pick.time)
     differential_times_dict = dict()
     # if stream dict is a list of len 1, return that dict
     if isinstance(stream_dict, list) and len(stream_dict) == 1:
@@ -302,11 +327,13 @@ def _compute_dt_correlations(master, catalog, stream_dict, event_id_mapper,
     available_seed_ids = {tr.id for st in master_stream.values() for tr in st}
     Logger.debug(f"The channels provided are: {available_seed_ids}")
     master_seed_ids = {
-        SeedPickID(pick.waveform_id.get_seed_string(), (
+        # SeedPickID(pick.waveform_id.get_seed_string(), (
+        SeedPickID(pick.seed_id, (
             pick.phase_hint if full_phase_hint else pick.phase_hint[0]))
         for pick in master.picks if
         pick.phase_hint[0] in "PS" and
-        pick.waveform_id.get_seed_string() in available_seed_ids}
+        # pick.waveform_id.get_seed_string() in available_seed_ids}
+        pick.seed_id in available_seed_ids}
     Logger.debug(f"Using channels: {master_seed_ids}")
     # Dictionary of travel-times for master keyed by {station}_{phase_hint}
     master_tts = dict()
@@ -355,7 +382,8 @@ def _compute_dt_correlations(master, catalog, stream_dict, event_id_mapper,
                 args=(stream_dict[event_id], event_dict[event_id],
                       matched_length, matched_pre_pick),
                 kwds=dict(seed_pick_ids=master_seed_ids,
-                          full_phase_hint=full_phase_hint))
+                          full_phase_hint=full_phase_hint,
+                          pre_slice_stream=pre_slice_stream))
                         for event_id in event_ids]
         matched_streams = {id_res[0]: id_res[1].get()
                            for id_res in zip(event_ids, results)}
@@ -364,8 +392,8 @@ def _compute_dt_correlations(master, catalog, stream_dict, event_id_mapper,
             event_id: _prepare_stream(
                 stream=stream_dict[event_id], event=event_dict[event_id],
                 extract_len=matched_length, pre_pick=matched_pre_pick,
-                seed_pick_ids=master_seed_ids,
-                full_phase_hint=full_phase_hint)
+                seed_pick_ids=master_seed_ids, full_phase_hint=full_phase_hint,
+                pre_slice_stream=pre_slice_stream)
             for event_id in event_ids}
 
     sampling_rates = {tr.stats.sampling_rate for st in master_stream.values()
@@ -542,19 +570,22 @@ def _prep_horiz_picks(catalog, stream_dict, event_id_mapper):
     for event in catalog:
         event_S_picks = [
             pick for pick in event.picks if pick.phase_hint.upper().startswith(
-                'S') and pick.waveform_id.get_seed_string()[-1] in 'EN12XY']
+                # 'S') and pick.waveform_id.get_seed_string()[-1] in 'EN12XY']
+                'S') and pick.seed_id[-1] in 'EN12XY']
         st = stream_dict[str(event.resource_id)]
         st = Stream([tr for tr in st if tr.stats.channel[-1] in 'EN12XY'])
         for tr in st:
             tr_picks = [
                 pick for pick in event_S_picks
-                if tr.id == pick.waveform_id.get_seed_string()]
+                # if tr.id == pick.waveform_id.get_seed_string()]
+                if tr.id == pick.seed_id]
             if len(tr_picks) > 0:
                 continue
             else:
                 tr_picks = [
                     pick for pick in event_S_picks
-                    if tr.id[0:-1] == pick.waveform_id.get_seed_string()[0:-1]]
+                    # if tr.id[0:-1] == pick.waveform_id.get_seed_string()[0:-1]]
+                    if tr.id[0:-1] == pick.seed_id[0:-1]]
                 new_wav_id = WaveformStreamID(network_code=tr.stats.network,
                                               station_code=tr.stats.station,
                                               location_code=tr.stats.location,
@@ -730,6 +761,7 @@ def _prep_sub_stream_dicts(
 
 def compute_differential_times(catalog, correlation, stream_dict=None,
                                event_id_mapper=None, max_sep=8., min_link=8,
+                               pre_slice_stream=False,
                                min_cc=None, extract_len=None, pre_pick=None,
                                shift_len=None, interpolate=False,
                                all_horiz=False, max_workers=None,
@@ -822,9 +854,15 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
         for arg, name in correlation_kwargs.items():
             assert arg is not None, "{0} is required for correlation".format(
                 name)
+        if pre_slice_stream:
+            correlation_kwargs.update({'pre_slice_stream': True})
     # Ensure all events have locations and picks.
     event_id_mapper = _generate_event_id_mapper(
         catalog=catalog, event_id_mapper=event_id_mapper)
+    # Add seed_id property to all picks for quicker retrieval
+    for event in catalog:
+        for pick in event.picks:
+            pick.seed_id = pick.waveform_id.get_seed_string()
     distances = dist_mat_km(catalog)
     distance_filter = distances <= max_sep
     if not include_master:
@@ -842,6 +880,19 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
                            full_phase_hint=full_phase_hint,
                            write_dt_from_workers=write_dt_from_workers)
     if correlation:
+        # Option to trim / slice all streams before starting to workers, then
+        # only the master stream has to be shortened further for correlation.
+        if pre_slice_stream:
+            matched_length = extract_len + (2 * shift_len)
+            matched_pre_pick = pre_pick + shift_len
+            for event in sparse_catalog:
+                prep_streams = _prepare_stream(
+                    stream_dict[event.resource_id], event,
+                    extract_len=matched_length, pre_pick=matched_pre_pick,
+                    seed_pick_ids=None, full_phase_hint=full_phase_hint)
+                stream = Stream([tr for value in prep_streams.values()
+                                 for tr in value])
+                stream_dict.update({event.resource_id: stream})
         differential_times = {}
         additional_args.update(correlation_kwargs)
         n = len(sparse_catalog)
@@ -879,6 +930,11 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
                     additional_args.update({'shm_dtype': shm_dtype})
                 else:
                     use_shared_memory = False
+                # Send int of nanoseconds rather than UTCDateTime object to
+                # workers.
+                for sparse_event in sparse_catalog:
+                    for pick in sparse_event.picks:
+                        pick.time = pick.time.ns
             # Prep creationg of stream_dict subsets for each event, so that
             # only traces which can be correlated against the master are sent 
             # to the workers.
@@ -1048,10 +1104,11 @@ def _filter_stream(event_id, st, lowcut, highcut):
     return {event_id: st_out}
 
 
-def write_correlations(catalog, stream_dict, extract_len, pre_pick,
-                       shift_len, event_id_mapper=None, lowcut=1.0,
-                       highcut=10.0, max_sep=8, min_link=8,  min_cc=0.0,
-                       interpolate=False, all_horiz=False, max_workers=None,
+def write_correlations(catalog, stream_dict, extract_len, pre_pick, shift_len,
+                       event_id_mapper=None, pre_slice_stream=False,
+                       lowcut=1.0, highcut=10.0, max_sep=8, min_link=8,
+                       min_cc=0.0, interpolate=False,
+                       all_horiz=False, max_workers=None,
                        parallel_process=False, weight_by_square=True,
                        full_phase_hint=False, write_dt_from_workers=False,
                        *args, **kwargs):
@@ -1156,6 +1213,7 @@ def write_correlations(catalog, stream_dict, extract_len, pre_pick,
         extract_len=extract_len, pre_pick=pre_pick, shift_len=shift_len,
         interpolate=interpolate, all_horiz=all_horiz,
         weight_by_square=weight_by_square, full_phase_hint=full_phase_hint,
+        pre_slice_stream=pre_slice_stream,
         write_dt_from_workers=write_dt_from_workers, **kwargs)
     if not write_dt_from_workers:
         with open("dt.cc", "w") as f:
