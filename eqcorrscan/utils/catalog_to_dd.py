@@ -591,6 +591,7 @@ def _prep_horiz_picks(catalog, stream_dict, event_id_mapper):
 
 def stream_dict_to_shared_mem(stream_dict):
     """
+    Moves trace-data in a stream-dict into shared memory.
     """
     shm_name_list = []
     shm_data_shapes = []
