@@ -165,7 +165,6 @@ def _make_sparse_event(event, full_phase_hint=False):
             tt=pick.time - origin_time,
             time=pick.time,
             seed_id=pick.waveform_id.get_seed_string(),
-            # seed_id=pick.seed_id,
             # Only use P or S hints.
             phase_hint=(pick.phase_hint if full_phase_hint
                         else pick.phase_hint[0]),
@@ -183,7 +182,6 @@ def _prepare_stream(stream, event, extract_len, pre_pick, seed_pick_ids=None,
     returns a dictionary of traces keyed by phase_hint.
     """
     seed_pick_ids = seed_pick_ids or {
-        # SeedPickID(pick.waveform_id.get_seed_string(), (
         SeedPickID(pick.seed_id, (
             pick.phase_hint if full_phase_hint else pick.phase_hint[0]))
         for pick in event.picks if pick.phase_hint.startswith(("P", "S"))}
@@ -192,7 +190,6 @@ def _prepare_stream(stream, event, extract_len, pre_pick, seed_pick_ids=None,
     seed_pick_id_dict = defaultdict(list)
     for seed_pick_id in seed_pick_ids:
         for pick in event.picks:
-            # if pick.waveform_id.get_seed_string() == seed_pick_id.seed_id:
             if pick.seed_id == seed_pick_id.seed_id:
                 # Picks could be added twice in case there are P and S pick on
                 # same channel.
@@ -230,6 +227,8 @@ def _prepare_stream(stream, event, extract_len, pre_pick, seed_pick_ids=None,
             if len(tr) > 1:
                 # Starttime and pick can differ slightly due to sampling
                 time_diff_threshold = tr[0].stats.delta / 2
+                # NOTE: Depending on the exact threshold (half or full sample
+                # diff), this can lead to slightly different number of dt-vals.
                 tr = [tt for tt in tr
                       if abs(tt.stats.starttime - (pick.time - pre_pick))
                       < time_diff_threshold]
@@ -260,9 +259,9 @@ def _prepare_stream(stream, event, extract_len, pre_pick, seed_pick_ids=None,
             # if tr.stats.endtime - tr.stats.starttime != extract_len:
             if tr.stats.npts < n_samples_intended:
                 Logger.warning(
-                    "Insufficient data ({rlen} s) for {tr_id}, discarding. Check "
-                    "that your traces are at least of length {length} s, with a "
-                    "pre_pick time of at least {prepick} s!".format(
+                    "Insufficient data ({rlen} s) for {tr_id}, discarding. "
+                    "Check that your traces are at least of length {length} s,"
+                    " with a pre_pick time of at least {prepick} s!".format(
                         rlen=tr.stats.endtime - tr.stats.starttime,
                         tr_id=tr.id, length=extract_len, prepick=pre_pick))
                 continue
@@ -304,16 +303,11 @@ def _compute_dt_correlations(master, catalog, stream_dict, event_id_mapper,
         for tr in stream:
             if isinstance(tr.stats.starttime, int):
                 tr.stats.starttime = UTCDateTime(ns=tr.stats.starttime)
-            # if isinstance(tr.stats.endtime, int):
-            #    tr.stats.endtime = UTCDateTime(ns=tr.stats.endtime)
             if len(tr.data) == 0 and hasattr(tr, 'shared_memory_name'):
                 shm = shared_memory.SharedMemory(name=tr.shared_memory_name)
                 # Reconstructing numpy data array
                 sm_data = np.ndarray(
                     shm_data_shape, dtype=shm_dtype, buffer=shm.buf)
-                # lock.acquire()
-                # tr.data = sm_data
-                # lock.release()
                 tr.data = np.zeros_like(sm_data)
                 # Copy data into process memory
                 tr.data[:] = sm_data[:]
@@ -327,12 +321,10 @@ def _compute_dt_correlations(master, catalog, stream_dict, event_id_mapper,
     available_seed_ids = {tr.id for st in master_stream.values() for tr in st}
     Logger.debug(f"The channels provided are: {available_seed_ids}")
     master_seed_ids = {
-        # SeedPickID(pick.waveform_id.get_seed_string(), (
         SeedPickID(pick.seed_id, (
             pick.phase_hint if full_phase_hint else pick.phase_hint[0]))
         for pick in master.picks if
         pick.phase_hint[0] in "PS" and
-        # pick.waveform_id.get_seed_string() in available_seed_ids}
         pick.seed_id in available_seed_ids}
     Logger.debug(f"Using channels: {master_seed_ids}")
     # Dictionary of travel-times for master keyed by {station}_{phase_hint}
@@ -570,21 +562,18 @@ def _prep_horiz_picks(catalog, stream_dict, event_id_mapper):
     for event in catalog:
         event_S_picks = [
             pick for pick in event.picks if pick.phase_hint.upper().startswith(
-                # 'S') and pick.waveform_id.get_seed_string()[-1] in 'EN12XY']
                 'S') and pick.seed_id[-1] in 'EN12XY']
         st = stream_dict[str(event.resource_id)]
         st = Stream([tr for tr in st if tr.stats.channel[-1] in 'EN12XY'])
         for tr in st:
             tr_picks = [
                 pick for pick in event_S_picks
-                # if tr.id == pick.waveform_id.get_seed_string()]
                 if tr.id == pick.seed_id]
             if len(tr_picks) > 0:
                 continue
             else:
                 tr_picks = [
                     pick for pick in event_S_picks
-                    # if tr.id[0:-1] == pick.waveform_id.get_seed_string()[0:-1]]
                     if tr.id[0:-1] == pick.seed_id[0:-1]]
                 new_wav_id = WaveformStreamID(network_code=tr.stats.network,
                                               station_code=tr.stats.station,
@@ -859,10 +848,6 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
     # Ensure all events have locations and picks.
     event_id_mapper = _generate_event_id_mapper(
         catalog=catalog, event_id_mapper=event_id_mapper)
-    # Add seed_id property to all picks for quicker retrieval
-    for event in catalog:
-        for pick in event.picks:
-            pick.seed_id = pick.waveform_id.get_seed_string()
     distances = dist_mat_km(catalog)
     distance_filter = distances <= max_sep
     if not include_master:
