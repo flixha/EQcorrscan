@@ -196,7 +196,7 @@ def _prepare_stream(stream, event, extract_len, pre_pick, seed_pick_ids=None,
         pick = [pick for pick in seed_pick_id_dict[seed_pick_id.seed_id]
                 if (pick.phase_hint if full_phase_hint
                     else pick.phase_hint[0]) == seed_pick_id.phase_hint]
-        if len(pick) > 1:
+        if len(pick) > 1 and Logger.level == "DEBUG":
             Logger.warning(
                 "Multiple picks for {seed_id}, phase-hint {phase_hint}, using "
                 "the earliest".format(
@@ -681,6 +681,8 @@ def _prep_sub_stream_dicts(
             # limit:
             if (master_filter is not None and not master_filter[j_event]):
                 continue
+            # We could check if event is part of catalog-dict, but this should
+            # not be the case and could be slow (n*n checks for membership)
             if sub_catalog is not None:
                 if event_id not in sub_catalog_dict.keys():
                     continue
