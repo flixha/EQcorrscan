@@ -8,6 +8,7 @@ Functions to generate hypoDD input files from catalogs.
     GNU Lesser General Public License, Version 3
     (https://www.gnu.org/copyleft/lesser.html)
 """
+import os
 import numpy as np
 import logging
 from collections import namedtuple, defaultdict, Counter
@@ -190,13 +191,16 @@ def _prepare_stream(stream, event, extract_len, pre_pick, seed_pick_ids=None,
     for seed_pick_id in seed_pick_ids:
         for pick in event.picks:
             if pick.waveform_id.get_seed_string() == seed_pick_id.seed_id:
-                seed_pick_id_dict[seed_pick_id.seed_id].append(pick)
+                # Picks could be added twice in case there are P and S pick on
+                # same channel.
+                if pick not in seed_pick_id_dict[seed_pick_id.seed_id]:
+                    seed_pick_id_dict[seed_pick_id.seed_id].append(pick)
     for seed_pick_id in seed_pick_ids:
         # Retrive relevant picks from dict
         pick = [pick for pick in seed_pick_id_dict[seed_pick_id.seed_id]
                 if (pick.phase_hint if full_phase_hint
                     else pick.phase_hint[0]) == seed_pick_id.phase_hint]
-        if len(pick) > 1 and Logger.level == "DEBUG":
+        if len(pick) > 1:
             Logger.warning(
                 "Multiple picks for {seed_id}, phase-hint {phase_hint}, using "
                 "the earliest".format(
@@ -654,8 +658,9 @@ def _prep_sub_stream_dicts(
         return sub_catalog, [stream_dict for event in sparse_catalog]
     Logger.debug('Preparing %s subsets from the stream_dict for the events.',
                  len(sparse_catalog))
-    stream_dicts = []
-    # Create a dict of dicts with the seed-ids as keys for the traces
+    # Create a dict of dicts with the seed-ids as keys for the traces.
+    # If the function is called multiple times, the seed_id_trace_dicts can be
+    # prepared outside of the function and supplied here which can save time.
     if seed_id_trace_dicts is None:
         seed_id_trace_dicts = defaultdict(defaultdict)
         for event_id, stream in stream_dict.items():
@@ -664,6 +669,7 @@ def _prep_sub_stream_dicts(
                 seed_id_trace_dict[tr.id].append(tr)
             seed_id_trace_dicts[event_id] = seed_id_trace_dict
     # Select the relevant traces for each master event:
+    stream_dicts = []
     master_filter = None
     for i_event, event in enumerate(sparse_catalog):
         Logger.debug('Preparing subet for master event %s', i_event)
@@ -711,6 +717,8 @@ def _prep_sub_stream_dicts(
             # sub_stream = Stream([tr for subtr in traces for tr in subtr])
             if len(sub_stream) > 0:
                 sub_stream_dict[event_id] = sub_stream
+                # Limit subcatalog to those events that can be correlated
+                # against one another:
                 new_sub_catalog.append(sub_catalog_dict[event_id])
         stream_dicts.append(sub_stream_dict)
     if sub_catalog is not None:
@@ -1116,6 +1124,10 @@ def write_correlations(catalog, stream_dict, extract_len, pre_pick,
         min_cc = cc_thresh
         Logger.warning("cc_thresh is depreciated, use min_cc instead")
     max_workers = max_workers or cpu_count()
+    # Remove existing dt.cc file if it exists
+    if write_dt_from_workers:
+        if os.path.exists("dt.cc"):
+            os.remove("dt.cc")
     processed_stream_dict = stream_dict
     # Process the streams
     if not (lowcut is None and highcut is None):
