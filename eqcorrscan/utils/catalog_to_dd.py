@@ -260,6 +260,7 @@ def _compute_dt_correlations(master, catalog, stream_dict, event_id_mapper,
                              shm_data_shape=None, shm_dtype=None,
                              weight_by_square=True, full_phase_hint=False,
                              prepare_sub_stream_dicts=False,
+                             write_dt_from_workers=False,
                              **kwargs):
     """ Compute cross-correlation delay times. """
     max_workers = max_workers or 1
@@ -474,6 +475,20 @@ def _compute_dt_correlations(master, catalog, stream_dict, event_id_mapper,
     differential_times = [dt for dt in differential_times_dict.values()
                           if len(dt.obs) >= min_link]
     Logger.debug(f"Correlating {str(master.resource_id)} done.")
+    # Option to write correlation values directly from workers to output file
+    # to save memory
+    if write_dt_from_workers:
+        # if lock is not None:
+        lock.acquire()
+        with open("dt.cc", "a") as f:
+            # for master_id, linked_events in correlation_times.items():
+            for linked_event in differential_times:
+                f.write(linked_event.cc_string)
+                f.write("\n")
+        # if lock is not None:
+        lock.release()
+        # Return None to save memory and avoid pickling
+        differential_times = None
     return differential_times
 
 
@@ -713,6 +728,7 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
                                max_trace_workers=1, use_shared_memory=False,
                                prepare_sub_stream_dicts=False,
                                weight_by_square=True, full_phase_hint=False,
+                               write_dt_from_workers=False,
                                *args, **kwargs):
     """
     Generate groups of differential times for a catalog.
@@ -815,7 +831,8 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
                                            event_id_mapper)
 
     additional_args = dict(min_link=min_link, event_id_mapper=event_id_mapper,
-                           full_phase_hint=full_phase_hint)
+                           full_phase_hint=full_phase_hint,
+                           write_dt_from_workers=write_dt_from_workers)
     if correlation:
         differential_times = {}
         additional_args.update(correlation_kwargs)
@@ -857,7 +874,7 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
             # Prep creationg of stream_dict subsets for each event, so that
             # only traces which can be correlated against the master are sent 
             # to the workers.
-            seed_id_trace_dict = None
+            seed_id_trace_dicts = None
             if prepare_sub_stream_dicts:
                 # Create a dict of dicts with the seed-IDs as keys for the
                 # traces for each event, used for quicker trace retrieval.
@@ -948,7 +965,9 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
 
     # Remove Nones
     for key, value in differential_times.items():
-        differential_times.update({key: [v for v in value if v is not None]})
+        if value is not None:
+            differential_times.update({key: [v for v in value
+                                             if v is not None]})
     return differential_times, event_id_mapper
 
 
@@ -1026,7 +1045,8 @@ def write_correlations(catalog, stream_dict, extract_len, pre_pick,
                        highcut=10.0, max_sep=8, min_link=8,  min_cc=0.0,
                        interpolate=False, all_horiz=False, max_workers=None,
                        parallel_process=False, weight_by_square=True,
-                       full_phase_hint=False, *args, **kwargs):
+                       full_phase_hint=False, write_dt_from_workers=False,
+                       *args, **kwargs):
     """
     Write a dt.cc file for hypoDD input for a given list of events.
 
@@ -1124,12 +1144,15 @@ def write_correlations(catalog, stream_dict, extract_len, pre_pick,
         extract_len=extract_len, pre_pick=pre_pick, shift_len=shift_len,
         interpolate=interpolate, all_horiz=all_horiz,
         weight_by_square=weight_by_square, full_phase_hint=full_phase_hint,
-        **kwargs)
-    with open("dt.cc", "w") as f:
-        for master_id, linked_events in correlation_times.items():
-            for linked_event in linked_events:
-                f.write(linked_event.cc_string)
-                f.write("\n")
+        write_dt_from_workers=write_dt_from_workers, **kwargs)
+    if not write_dt_from_workers:
+        with open("dt.cc", "w") as f:
+            for master_id, linked_events in correlation_times.items():
+                for linked_event in linked_events:
+                    f.write(linked_event.cc_string)
+                    f.write("\n")
+    # elif write_dt_sorted:
+    #    # TODO: read in dt.cc file, sort by event id, write to dt.cc.
     return event_id_mapper
 
 
