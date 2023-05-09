@@ -61,6 +61,15 @@ class SparsePick(object):
                 "time_weight={3})".format(
                     self.seed_id, self.phase_hint, self.tt, self.time_weight))
 
+    def __hash__(self):
+        # Don't need to use .time in hash since we deal only with one possible
+        # origin, hence equal tt (traveltime) means equal arrival time
+        return hash((self.tt, self.time_weight, self.seed_id, self.phase_hint))
+
+    def __eq__(self, other):
+        return (isinstance(other, self.__class__)
+                and self.__hash__() == other.__hash__())
+
     @property
     def station(self):
         return self.seed_id.split('.')[1]
@@ -152,7 +161,7 @@ def _generate_event_id_mapper(catalog, event_id_mapper=None):
     return event_id_mapper
 
 
-def _make_sparse_event(event, full_phase_hint=False):
+def _make_sparse_event(event, full_phase_hint=False, truncate_id=False):
     """ Make a sparse event with just the info hypoDD needs. """
     origin_time = (event.preferred_origin() or event.origins[0]).time
     time_weight_dict = {
@@ -169,7 +178,7 @@ def _make_sparse_event(event, full_phase_hint=False):
             phase_hint=(pick.phase_hint if full_phase_hint
                         else pick.phase_hint[0]),
             time_weight=time_weight_dict.get(pick.resource_id, 1.0),
-            waveform_id=pick.waveform_id)
+            waveform_id=(None if truncate_id else pick.waveform_id))
             for pick in event.picks])
     return sparse_event
 
@@ -279,6 +288,8 @@ def _compute_dt_correlations(master, catalog, stream_dict, event_id_mapper,
                              shm_data_shape=None, shm_dtype=None,
                              weight_by_square=True, full_phase_hint=False,
                              prepare_sub_stream_dicts=False,
+                             net_loc_normalized=False,
+                             std_net=None, std_loc=None,
                              pre_slice_stream=False,
                              write_dt_from_workers=False,
                              **kwargs):
@@ -286,14 +297,22 @@ def _compute_dt_correlations(master, catalog, stream_dict, event_id_mapper,
     max_workers = max_workers or 1
     Logger.info(
         f"Correlating {str(master.resource_id)} with {len(catalog)} events")
-    # Recreate UTCDateTime for pick time if started as worker process
-    for pick in master.picks:
-        if isinstance(pick.time, int):
-            pick.time = UTCDateTime(ns=pick.time)
-    for event in catalog:
-        for pick in event.picks:
+    # Only needed if started as worker process with shared-memory:
+    if shm_dtype is not None:
+        for pick in master.picks:
+            # Recreate pick's UTCDateTime from nanoseconds
             if isinstance(pick.time, int):
                 pick.time = UTCDateTime(ns=pick.time)
+            # Recreate waveform_id from seed_id
+            if pick.waveform_id is None:
+                pick.waveform_id = WaveformStreamID(*pick.seed_id.split('.'))
+        for event in catalog:
+            for pick in event.picks:
+                if isinstance(pick.time, int):
+                    pick.time = UTCDateTime(ns=pick.time)
+                if pick.waveform_id is None:
+                    pick.waveform_id = WaveformStreamID(
+                        *pick.seed_id.split('.'))
     differential_times_dict = dict()
     # if stream dict is a list of len 1, return that dict
     if isinstance(stream_dict, list) and len(stream_dict) == 1:
@@ -303,14 +322,18 @@ def _compute_dt_correlations(master, catalog, stream_dict, event_id_mapper,
         for tr in stream:
             if isinstance(tr.stats.starttime, int):
                 tr.stats.starttime = UTCDateTime(ns=tr.stats.starttime)
-            if len(tr.data) == 0 and hasattr(tr, 'shared_memory_name'):
-                shm = shared_memory.SharedMemory(name=tr.shared_memory_name)
+            if len(tr.data) == 0 and hasattr(tr, 'shm_name'):
+                shm = shared_memory.SharedMemory(name=tr.shm_name)
                 # Reconstructing numpy data array
                 sm_data = np.ndarray(
                     shm_data_shape, dtype=shm_dtype, buffer=shm.buf)
                 tr.data = np.zeros_like(sm_data)
                 # Copy data into process memory
                 tr.data[:] = sm_data[:]
+                # Put back network and location codes (endtime never required)
+                if net_loc_normalized:
+                    tr.stats.__dict__.update(
+                        {'network': std_net, 'location': std_loc})
     Logger.info(
         f"Correlating {str(master.resource_id)}: reconstructed shared memory")
 
@@ -552,7 +575,8 @@ def _make_event_pair(sparse_event, master, event_id_mapper, min_link):
     return
 
 
-def _prep_horiz_picks(catalog, stream_dict, event_id_mapper):
+def _prep_horiz_picks(catalog, stream_dict, event_id_mapper,
+                      truncate_id=False):
     """
     Fill in horizontal picks for the alternate horizontal channel for events in
     catalog.
@@ -584,8 +608,12 @@ def _prep_horiz_picks(catalog, stream_dict, event_id_mapper):
                                           time_weight=pick.time_weight,
                                           seed_id=new_wav_id.get_seed_string(),
                                           phase_hint=pick.phase_hint,
-                                          waveform_id=new_wav_id)
-                    event.picks.append(new_pick)
+                                          waveform_id=(None if truncate_id
+                                                       else new_wav_id))
+                    # Pick could already be in event.picks if there were
+                    # multiple traces with same id that did not have a pick.
+                    if new_pick not in event.picks:
+                        event.picks.append(new_pick)
     return catalog
 
 
@@ -600,10 +628,11 @@ def stream_dict_to_shared_mem(stream_dict):
         for tr in stream:
             data_array = tr.data
             # Create valid filename for shared memory from resource ID and trac
-            shm_name = str(key) + tr.id + str(tr.stats.starttime)
-            shm_name = shm_name.replace('/', '_').replace(':', '+')
-            # make the name filename unique
-            shm_name = shm_name + '_' + str(uuid.uuid4())
+            # shm_name = str(key) + tr.id + str(tr.stats.starttime)
+            # shm_name = shm_name.replace('/', '_').replace(':', '+')
+            # # make the name filename unique
+            # shm_name = shm_name + '_' + str(uuid.uuid4())
+            shm_name = str(uuid.uuid4())
             shm = shared_memory.SharedMemory(
                 name=shm_name, create=True, size=data_array.nbytes)
             shm_name_list.append(shm_name)
@@ -616,7 +645,7 @@ def stream_dict_to_shared_mem(stream_dict):
             shared_data_array[:] = data_array[:]
             # tr.data = shared_data_array
             tr.data = np.array([])
-            tr.shared_memory_name = shm_name
+            tr.shm_name = shm_name
             shm_data_shapes.append(shm_data_shape)
             shm_data_dtypes.append(shm_data_dtype)
     shm_data_shapes = list(set(shm_data_shapes))
@@ -707,6 +736,8 @@ def _prep_sub_stream_dicts(
         #     seed_id_trace_dicts[event.__dict__['resource_id']].keys())
         event_stream_seed_ids = list(
             seed_id_trace_dicts[event.resource_id].keys())
+        if len(event_stream_seed_ids) == 0:
+            continue
 
         # Dictionary of the subcatalog, keyes by event ids
         if sub_catalog is not None:
@@ -756,6 +787,8 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
                                shift_len=None, interpolate=False,
                                all_horiz=False, max_workers=None,
                                max_trace_workers=1, use_shared_memory=False,
+                               net_loc_normalized=False,
+                               std_net='XX', std_loc='00',
                                prepare_sub_stream_dicts=False,
                                weight_by_square=True, full_phase_hint=False,
                                write_dt_from_workers=False,
@@ -856,11 +889,14 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
         # Do not match events to themselves - this is the default,
         # only included for testing
     # Reformat catalog to sparse catalog
-    sparse_catalog = [_make_sparse_event(ev, full_phase_hint)
+    truncate_id = True if use_shared_memory and max_workers > 1 else False
+    sparse_catalog = [_make_sparse_event(ev, full_phase_hint,
+                                         truncate_id=truncate_id)
                       for ev in catalog]
     if all_horiz:
-        sparse_catalog = _prep_horiz_picks(sparse_catalog, stream_dict,
-                                           event_id_mapper)
+        sparse_catalog = _prep_horiz_picks(
+            sparse_catalog, stream_dict, event_id_mapper,
+            truncate_id=truncate_id)
 
     additional_args = dict(min_link=min_link, event_id_mapper=event_id_mapper,
                            full_phase_hint=full_phase_hint,
@@ -901,11 +937,19 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
                     f"Completed correlations for core event {i} of {n}")
         else:
             # Move trace data into shared memory
+            if net_loc_normalized:
+                additional_args.update({'net_loc_normalized': True})
+                additional_args.update({'std_net': std_net})
+                additional_args.update({'std_loc': std_loc})
             if use_shared_memory:
                 for (key, stream) in stream_dict.items():
                     for tr in stream:
                         tr.stats.__dict__['starttime'] = tr.stats.starttime.ns
-                        tr.stats.__dict__['endtime'] = tr.stats.endtime.ns
+                        # tr.stats.__dict__['endtime'] = tr.stats.endtime.ns
+                        tr.stats.__dict__.pop('endtime')
+                        if net_loc_normalized:
+                            tr.stats.__dict__.pop('network')
+                            tr.stats.__dict__.pop('location')
                 shm_stream_dict, shm_name_list, shm_data_shapes, shm_dtypes = (
                     stream_dict_to_shared_mem(stream_dict))
                 if len(shm_data_shapes) == 1 and len(shm_dtypes) == 1:
