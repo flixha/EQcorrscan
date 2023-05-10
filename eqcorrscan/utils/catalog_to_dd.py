@@ -752,8 +752,9 @@ def _prep_sub_stream_dicts(
         # Loop through worker events:
         for j_event, event_id in enumerate(stream_dict.keys()):
             # Skip any event after the maximum number of neighbors is reached:
-            if len(new_sub_catalog) > max_neighbors:
-                continue
+            if max_neighbors is not None
+                if len(new_sub_catalog) > max_neighbors:
+                    continue
             # Check if the events will be correlated according to distance
             # limit:
             if (master_filter is not None and not master_filter[j_event]):
