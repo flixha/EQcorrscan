@@ -678,8 +678,9 @@ def _strip_stream_dict(stream_dict):
 
 
 def _prep_sub_stream_dicts(
-        stream_dict, sparse_catalog, sub_catalog=None, seed_id_trace_dicts=None,
-        prepare_sub_stream_dicts=True, distance_filter=None):
+        stream_dict, sparse_catalog, sub_catalog=None,
+        seed_id_trace_dicts=None, prepare_sub_stream_dicts=True,
+        distance_filter=None, max_neighbors=None):
     """
     Prepare subsets of the stream dict that can be supplied to the workers and
     that contain only the traces that can be correlated against the master
@@ -750,6 +751,9 @@ def _prep_sub_stream_dicts(
         sub_stream_dict[event.resource_id] = master_stream
         # Loop through worker events:
         for j_event, event_id in enumerate(stream_dict.keys()):
+            # Skip any event after the maximum number of neighbors is reached:
+            if len(new_sub_catalog) > max_neighbors:
+                continue
             # Check if the events will be correlated according to distance
             # limit:
             if (master_filter is not None and not master_filter[j_event]):
@@ -782,7 +786,7 @@ def _prep_sub_stream_dicts(
 
 def compute_differential_times(catalog, correlation, stream_dict=None,
                                event_id_mapper=None, max_sep=8., min_link=8,
-                               pre_slice_stream=False,
+                               max_neighbors=None, pre_slice_stream=False,
                                min_cc=None, extract_len=None, pre_pick=None,
                                shift_len=None, interpolate=False,
                                all_horiz=False, max_workers=None,
@@ -1013,7 +1017,8 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
                        args=(master, *_prep_sub_stream_dicts(
                            stream_dict, [master], sub_catalog,
                            seed_id_trace_dicts, prepare_sub_stream_dicts,
-                           distance_filter=distance_filter[i])),
+                           distance_filter=distance_filter[i],
+                           max_neighbors=max_neighbors)),
                        kwds=additional_args)
                     for i, (sub_catalog, master) in enumerate(
                         zip(sub_catalogs, sparse_catalog))
@@ -1137,7 +1142,7 @@ def _filter_stream(event_id, st, lowcut, highcut):
 def write_correlations(catalog, stream_dict, extract_len, pre_pick, shift_len,
                        event_id_mapper=None, pre_slice_stream=False,
                        lowcut=1.0, highcut=10.0, max_sep=8, min_link=8,
-                       min_cc=0.0, interpolate=False,
+                       min_cc=0.0, max_neighbors=None, interpolate=False,
                        all_horiz=False, max_workers=None,
                        parallel_process=False, weight_by_square=True,
                        full_phase_hint=False, write_dt_from_workers=False,
@@ -1240,6 +1245,7 @@ def write_correlations(catalog, stream_dict, extract_len, pre_pick, shift_len,
         catalog=catalog, correlation=True, event_id_mapper=event_id_mapper,
         max_sep=max_sep, min_link=min_link, max_workers=max_workers,
         stream_dict=processed_stream_dict, min_cc=min_cc,
+        max_neighbors=max_neighbors,
         extract_len=extract_len, pre_pick=pre_pick, shift_len=shift_len,
         interpolate=interpolate, all_horiz=all_horiz,
         weight_by_square=weight_by_square, full_phase_hint=full_phase_hint,
