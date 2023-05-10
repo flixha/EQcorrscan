@@ -1440,9 +1440,10 @@ def _get_array_dicts(templates, stream, stack, copy_streams=True):
     weights = weights * (np.count_nonzero(weights, axis=0, keepdims=True) /
                          weights.sum(axis=0, keepdims=True))
     # weights = np.float32(weights)  # Required for FFTW backend
-    Logger.info('Setting weights from trace-stats, minimum weight: %s, '
-                'maximum weight %s, total sum of weights: %s',
-                np.min(weights), np.max(weights), np.sum(weights))
+    if np.any(np.min(weights) != 1):
+        Logger.info('Setting weights from trace-stats, minimum weight: %s, '
+                    'maximum weight %s, total sum of weights: %s',
+                    np.min(weights), np.max(weights), np.sum(weights))
     # Update weights in weight-dict with normalized values:
     for seed_id, normalized_template_weights in zip(seed_ids, weights):
         weight_dict.update({seed_id: normalized_template_weights})

@@ -752,8 +752,8 @@ def _prep_sub_stream_dicts(
         # Loop through worker events:
         for j_event, event_id in enumerate(stream_dict.keys()):
             # Skip any event after the maximum number of neighbors is reached:
-            if max_neighbors is not None:
-                if len(new_sub_catalog) > max_neighbors:
+            if max_neighbors is not None and sub_catalog is not None:
+                if len(new_sub_catalog) >= max_neighbors:
                     continue
             # Check if the events will be correlated according to distance
             # limit:
@@ -766,7 +766,8 @@ def _prep_sub_stream_dicts(
                     continue
             # traces = [seed_id_trace_dicts[event_id][seed_id]
             #           for seed_id in event_stream_seed_ids]
-            # Try to speed up dict access with itemgetter:
+            # Concatenate matching traces from dict into one list, quickest
+            # dict access with itemgetter:
             traces = list(itemgetter(*event_stream_seed_ids)(
                 seed_id_trace_dicts[event_id]))
             # concatenate all the lists of traces into a stream
