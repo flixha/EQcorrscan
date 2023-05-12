@@ -11,6 +11,7 @@ Functions to cluster seismograms by a range of constraints.
 import os
 import logging
 from multiprocessing import cpu_count
+from concurrent.futures import ThreadPoolExecutor
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -25,6 +26,7 @@ from eqcorrscan.utils.correlate import (
 from eqcorrscan.utils.pre_processing import _prep_data_for_correlation
 
 Logger = logging.getLogger(__name__)
+EARTH_RADIUS = 6371.0
 
 
 def cross_chan_correlation(
@@ -962,7 +964,7 @@ def remove_unclustered(catalog, distance_cutoff, num_threads=None):
     return catalog
 
 
-def dist_mat_km(catalog, num_threads=None):
+def dist_mat_km(catalog, num_threads=None, gil_version_n_event_limit=40000):
     """
     Compute the distance matrix for a catalog using hypocentral separation.
 
@@ -993,7 +995,6 @@ def dist_mat_km(catalog, num_threads=None):
     utilslib.distance_matrix.restype = ctypes.c_int
 
     # Initialize square matrix
-    dist_mat = np.zeros((len(catalog), len(catalog)), dtype=np.float32)
     latitudes, longitudes, depths = (
         np.empty(len(catalog)), np.empty(len(catalog)), np.empty(len(catalog)))
     for i, event in enumerate(catalog):
@@ -1011,14 +1012,109 @@ def dist_mat_km(catalog, num_threads=None):
     if num_threads == 0:
         num_threads = 1
 
-    ret = utilslib.distance_matrix(
-        latitudes, longitudes, depths, len(catalog), dist_mat, num_threads)
-
-    if ret != 0:  # pragma: no cover
-        raise Exception("Internal error while computing distance matrix")
-    # Fill distance matrix
-    out = dist_mat.T + dist_mat
+    # If the catalog is large, use the GIL-unlocked numpy version
+    if len(catalog) > gil_version_n_event_limit:
+        out = np_dist_mat_km(latitudes, longitudes, depths, num_threads)
+    else:  # Otherwise use the C version
+        dist_mat = np.zeros((len(catalog), len(catalog)), dtype=np.float32)
+        ret = utilslib.distance_matrix(
+            latitudes, longitudes, depths, len(catalog), dist_mat, num_threads)
+        if ret != 0:  # pragma: no cover
+            raise Exception("Internal error while computing distance matrix")
+        # Fill distance matrix
+        out = dist_mat.T + dist_mat
     return out
+
+
+def dist_calc(lat1, lon1, depth1, lat2, lon2, depth2):
+    """
+    Calculate the distance between two points on the earth's surface.
+
+    :type lat1: np.array or float
+    :param lat1: Latitude of first point in radians
+    :type lon1: np.array or float
+    :param lon1: Longitude of first point in radians
+    :type depth1: np.array or float
+    :param depth1: Depth of first point in km
+    :type lat2: np.array or float
+    :param lat2: Latitude of second point in radians
+    :type lon2: np.array or float
+    :param lon2: Longitude of second point in radians
+    :type depth2: np.array or float
+    :param depth2: Depth of second point in km
+
+    :rtype: np.array or float
+    :return: Distance between points in km
+    """
+    dlat = lat1 - lat2
+    dlong = lon1 - lon2
+    ddepth = depth1 - depth2
+
+    central_angle = (
+        2 * np.arcsin(np.sqrt(
+            np.power(np.sin(dlat / 2), 2)
+            + np.cos(lat1) * np.cos(lat2) * np.power(np.sin(dlong / 2), 2))))
+
+    distance = EARTH_RADIUS * central_angle
+    distance = np.sqrt(np.power(distance, 2) + np.power(ddepth, 2))
+    return distance
+
+
+def _distance_matrix(latitudes, longitudes, depths, i):
+    """
+    Internal helper to compute distance matrix
+    """
+    return dist_calc(latitudes, longitudes, depths,
+                     latitudes[i], longitudes[i], depths[i])
+
+
+def np_dist_mat_km(latitudes, longitudes, depths, n_threads=1):
+    """
+    Calculate the distance matrix for a set of locations. This function does
+    the same as eqcorrscan.utils.clustering.dist_mat_km, but instead of using
+    C-code compiled in Eqcorrscan, it uses numpy and can hence be run in
+    thread-parallel mode with the GIL unocked.
+
+    :type latitudes: np.array or list
+    :param latitudes: Array of floats of latitudes in radians
+    :type longitudes: np.array or list
+    :param longitudes: Array of floats of longitudes in radians
+    :type depths: np.array or list
+    :param depths: Array of floats of depths in km (positive down)
+    :type n_threads: int
+    :param n_threads: Number of threads to use for parallelization
+
+    :rtype: np.array
+    :return: Array of floats of for output - should be initialized as zeros,
+    """
+    if isinstance(latitudes, list):
+        latitudes = np.array(latitudes)
+    if isinstance(longitudes, list):
+        longitudes = np.array(longitudes)
+    if isinstance(depths, list):
+        depths = np.array(depths)
+    n_locs = len(latitudes)
+    assert n_locs == len(longitudes)
+    assert n_locs == len(depths)
+
+    if n_threads > 1:
+        with ThreadPoolExecutor(max_workers=n_threads) as executor:
+            i = np.arange(n_locs)
+            # Because numpy releases GIL threading can use multiple cores
+            latitudes_list = [latitudes for _ in range(n_locs)]
+            longitudes_list = [longitudes for _ in range(n_locs)]
+            depths_list = [depths for _ in range(n_locs)]
+            dist_vectors = executor.map(
+                _distance_matrix,
+                latitudes_list, longitudes_list, depths_list, i)
+            dist_mat = np.squeeze(
+                np.dstack([dist_vector for dist_vector in dist_vectors]))
+    else:
+        for i in range(n_locs):
+            dist_mat = np.zeros((n_locs, n_locs))
+            dist_mat[i, :] = dist_calc(latitudes, longitudes, depths,
+                                    latitudes[i], longitudes[i], depths[i])
+    return dist_mat
 
 
 def dist_mat_time(catalog):
