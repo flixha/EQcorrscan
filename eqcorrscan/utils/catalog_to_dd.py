@@ -786,8 +786,56 @@ def _prep_sub_stream_dicts(
     return sub_catalog, stream_dicts
 
 
+def _generate_distance_filter_for_max_neighbors(
+        catalog, distances, max_neighbors, min_max_sep, max_max_sep):
+    """
+    Function that generates a distance filter for the catalog, so that
+    events with few neighbors can have a larger maximum separation distance
+    and events with many neighbors can have a smaller maximum separation.
+
+    :type catalog: :class:`obspy.core.event.Catalog`
+    :param catalog: Catalog of events.
+    :type distances: :class:`numpy.ndarray`
+    :param distances: Array of distances between events.
+    :type max_neighbors: int
+    :param max_neighbors: Maximum number of neighbors.
+    :type min_max_sep: float
+    :param min_max_sep: Smallest possible maximum separation (max_sep) distance
+    :type max_max_sep: float
+    :param max_max_sep: Largest possible maximum separation (max_sep) distance
+
+    :rtype: :class:`numpy.ndarray`
+    :return: Array of distance filters for each event.
+    """
+    optimal_sep_list = []
+    for j, event in enumerate(catalog):
+        # find the max_sep value that results in the right number of neighbors
+        event_distances = distances[j, :]
+        master_filter = event_distances < max_max_sep
+        if (len(master_filter) <= max_neighbors or
+                np.sum(master_filter) <= max_neighbors):
+            optimal_sep_list.append(max_max_sep)
+        else:
+            # Reduce to candidate neighbors
+            event_distances = event_distances[master_filter]
+            sorted_distances = np.sort(event_distances)
+            opt_sep = sorted_distances[max_neighbors]
+            if opt_sep < min_max_sep:
+                optimal_sep_list.append(min_max_sep)
+            else:
+                optimal_sep_list.append(opt_sep)
+    sorted_sep_indices = np.argsort(optimal_sep_list)
+    distance_filter = np.zeros(distances.shape, dtype=bool)
+    # set distance filter first for events with the smallest optimal sep
+    for filter_index in sorted_sep_indices:
+        distance_filter[filter_index, :] = (
+            distances[filter_index, :] <= optimal_sep_list[filter_index])
+    return distance_filter
+
+
 def compute_differential_times(catalog, correlation, stream_dict=None,
                                event_id_mapper=None, max_sep=8., min_link=8,
+                               min_max_sep=None, max_max_sep=None,
                                max_neighbors=None, pre_slice_stream=False,
                                min_cc=None, extract_len=None, pre_pick=None,
                                shift_len=None, interpolate=False,
@@ -889,7 +937,14 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
     event_id_mapper = _generate_event_id_mapper(
         catalog=catalog, event_id_mapper=event_id_mapper)
     distances = dist_mat_km(catalog)
-    distance_filter = distances <= max_sep
+    # Option to define event filters based on a target number of potential
+    # neighbors rather than strict distance separation cutoff.
+    if (max_neighbors is not None
+            and min_max_sep is not None and max_max_sep is not None):
+        distance_filter = _generate_distance_filter_for_max_neighbors(
+            catalog, distances, max_neighbors, min_max_sep, max_max_sep)
+    else:
+        distance_filter = distances <= max_sep
     if not include_master:
         np.fill_diagonal(distance_filter, 0)
         # Do not match events to themselves - this is the default,
