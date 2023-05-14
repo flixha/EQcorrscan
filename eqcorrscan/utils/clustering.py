@@ -240,7 +240,7 @@ def distance_matrix(stream_list, shift_len=0.0,
     uniq_traces = set([tr.id for st in stream_list for tr in st])
     n_uniq_traces = len(uniq_traces)
     # Initialize square matrix
-    dist_mat = np.zeros([n_streams, n_streams])
+    dist_mat = np.zeros([n_streams, n_streams], dtype=np.float32)
     shift_mat = np.empty([n_streams, n_streams, n_uniq_traces])
     shift_mat[:] = np.nan
     shift_dict = dict()
@@ -1097,6 +1097,7 @@ def np_dist_mat_km(latitudes, longitudes, depths, n_threads=1):
     assert n_locs == len(longitudes)
     assert n_locs == len(depths)
 
+    dist_mat = np.zeros((n_locs, n_locs), dtype=np.float32)
     if n_threads > 1:
         with ThreadPoolExecutor(max_workers=n_threads) as executor:
             i = np.arange(n_locs)
@@ -1107,13 +1108,11 @@ def np_dist_mat_km(latitudes, longitudes, depths, n_threads=1):
             dist_vectors = executor.map(
                 _distance_matrix,
                 latitudes_list, longitudes_list, depths_list, i)
-            dist_mat = np.squeeze(
-                np.dstack([dist_vector for dist_vector in dist_vectors]))
+            dist_mat = np.vstack([dist_vector for dist_vector in dist_vectors])
     else:
         for i in range(n_locs):
-            dist_mat = np.zeros((n_locs, n_locs))
             dist_mat[i, :] = dist_calc(latitudes, longitudes, depths,
-                                    latitudes[i], longitudes[i], depths[i])
+                                       latitudes[i], longitudes[i], depths[i])
     return dist_mat
 
 

@@ -808,9 +808,13 @@ def _generate_distance_filter_for_max_neighbors(
     :return: Array of distance filters for each event.
     """
     optimal_sep_list = []
+    nev = len(catalog)
     for j, event in enumerate(catalog):
         # find the max_sep value that results in the right number of neighbors
-        event_distances = distances[j, :]
+        if isinstance(distances, list):
+            event_distances = distances[j]
+        else:
+            event_distances = distances[j, :]
         master_filter = event_distances < max_max_sep
         if (len(master_filter) <= max_neighbors or
                 np.sum(master_filter) <= max_neighbors):
@@ -825,11 +829,15 @@ def _generate_distance_filter_for_max_neighbors(
             else:
                 optimal_sep_list.append(opt_sep)
     sorted_sep_indices = np.argsort(optimal_sep_list)
-    distance_filter = np.zeros(distances.shape, dtype=bool)
+    distance_filter = np.zeros([nev, nev], dtype=bool)
     # set distance filter first for events with the smallest optimal sep
     for filter_index in sorted_sep_indices:
-        distance_filter[filter_index, :] = (
-            distances[filter_index, :] <= optimal_sep_list[filter_index])
+        if isinstance(distances, list):
+            distance_filter[filter_index, :] = (
+                distances[filter_index] <= optimal_sep_list[filter_index])
+        else:
+            distance_filter[filter_index, :] = (
+                distances[filter_index, :] <= optimal_sep_list[filter_index])
     return distance_filter
 
 
@@ -944,7 +952,15 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
         distance_filter = _generate_distance_filter_for_max_neighbors(
             catalog, distances, max_neighbors, min_max_sep, max_max_sep)
     else:
-        distance_filter = distances <= max_sep
+        if isinstance(distances, list):
+            distance_filter = [distance_vector <= max_sep
+                               for distance_vector in distances]
+            distance_filter = np.vstack(distance_filter)
+        else:
+            distance_filter = distances <= max_sep
+    # Remove potentially large distances matrix to clear memory
+    distances = None
+    del distances
     if not include_master:
         np.fill_diagonal(distance_filter, 0)
         # Do not match events to themselves - this is the default,
