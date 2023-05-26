@@ -562,6 +562,11 @@ class Template(object):
             if not key.startswith('trace_'):
                 # extra metadata not intended for template stream
                 continue
+            if key.startswith('trace_original_trace_id'):
+                # The orignal_trace_id entry is added in Robustraqn to sort out
+                # the correct ID when normalizing metadata; it's not relevant
+                # here.
+                continue
             if len(value.value) != n_traces:
                 Logger.warning(
                     'Not enough values in extra event metadata for key %s '
