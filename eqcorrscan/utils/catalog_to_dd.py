@@ -823,6 +823,8 @@ def _generate_distance_filter_for_max_neighbors(
             # Reduce to candidate neighbors
             event_distances = event_distances[master_filter]
             sorted_distances = np.sort(event_distances)
+            # Get the separation distance for the n-th neighbor in the sorted
+            # array of distances
             opt_sep = sorted_distances[max_neighbors]
             if opt_sep < min_max_sep:
                 optimal_sep_list.append(min_max_sep)
