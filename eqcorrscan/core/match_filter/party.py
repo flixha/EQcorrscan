@@ -772,7 +772,7 @@ class Party(object):
         return self
 
     def read(self, filename=None, read_detection_catalog=True,
-             estimate_origin=True, cores=1):
+             estimate_origin=True, read_waveforms=True, cores=1):
         """
         Read a Party from a file.
 
@@ -830,7 +830,7 @@ class Party(object):
             party_dir = glob.glob(temp_dir + os.sep + '*')[0]
             Logger.info("Reading tribe")
             tribe._read_from_folder(
-                dirname=party_dir, cores=cores)
+                dirname=party_dir, cores=cores, read_waveforms=read_waveforms)
             det_cat_files = glob.glob(os.path.join(party_dir, "catalog.*"))
             Logger.info("Reading detection catalog")
             if len(det_cat_files) != 0 and read_detection_catalog:
