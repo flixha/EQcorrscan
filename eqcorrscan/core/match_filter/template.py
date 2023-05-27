@@ -543,7 +543,7 @@ class Template(object):
             self.st = template_st_cut
         elif n_traces > n_traces_metadata:
             Logger.warning(
-                'Traces: %s, trace metadata: ',
+                'Traces: %s, trace metadata: %s',
                 str([tr.id for tr in self.st]),
                 str([event.extra.trace_ids.value]))
             msg = ('Template {0}: Read in more traces ({1}) than trace ' +
