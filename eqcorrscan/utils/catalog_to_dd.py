@@ -190,6 +190,9 @@ def _prepare_stream(stream, event, extract_len, pre_pick, seed_pick_ids=None,
 
     returns a dictionary of traces keyed by phase_hint.
     """
+    # Force float32 in stream
+    for tr in stream:
+        tr.data = tr.data.astype(np.float32)
     seed_pick_ids = seed_pick_ids or {
         SeedPickID(pick.seed_id, (
             pick.phase_hint if full_phase_hint else pick.phase_hint[0]))
