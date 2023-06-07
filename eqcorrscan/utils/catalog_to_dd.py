@@ -392,6 +392,10 @@ def _compute_dt_correlations(master, catalog, stream_dict, event_id_mapper,
         event_ids = event_ids.intersection(_stream_event_ids)
     # Reorder event_ids according to original order
     event_ids = [key for key in event_dict.keys() if key in event_ids]
+    if len(event_ids) == 0:
+        if write_dt_from_workers:
+            return None
+        return []
 
     if max_workers > 1:
         with pool_boy(Pool, len(event_ids), cores=max_workers) as pool:
