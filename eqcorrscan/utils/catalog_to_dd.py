@@ -238,7 +238,7 @@ def _prepare_stream(stream, event, extract_len, pre_pick, seed_pick_ids=None,
             # Need to select the stream with the right starttime
             if len(tr) > 1:
                 # Starttime and pick can differ slightly due to sampling
-                time_diff_threshold = tr[0].stats.delta / 2
+                time_diff_threshold = tr[0].stats.delta # / 2
                 # NOTE: Depending on the exact threshold (half or full sample
                 # diff), this can lead to slightly different number of dt-vals.
                 tr = [tt for tt in tr
@@ -248,13 +248,26 @@ def _prepare_stream(stream, event, extract_len, pre_pick, seed_pick_ids=None,
                 continue
             tr = tr[0]
         else:
+            # There could be two traces with the same ID that are intended for
+            # different phases. We should not merge them, but select the one
+            # that is most appropriate here.
+            # TODO: or do a copy in case of more than one traces
             # Clean out trace stats to make slicing quicker
             for tt in tr:
                 if hasattr(tt.stats, 'processing_info'):
                     tt.stats.processing_info = []
+            # Need to merge traces here in case there are two traces with the
+            # same ID, otherwise traces could be misselected and cause large
+            # dt-values to be printed.
+            # BUT: this is causing some dt-times not to be printer or calculated
+            #      at all, why???
             tr = tr.slice(
                 starttime=pick.time - pre_pick,
-                endtime=(pick.time - pre_pick) + extract_len).merge()
+                endtime=(pick.time - pre_pick) + extract_len) #.merge()
+            # Copy in case of more than one traces before merging
+            # DOES NOT HELP
+            if len(tr) > 1:
+                tr = tr.copy().merge()
             if len(tr) == 0:
                 continue
             if len(tr) > 1:
@@ -263,20 +276,20 @@ def _prepare_stream(stream, event, extract_len, pre_pick, seed_pick_ids=None,
                 continue
             tr = tr[0]
 
-            # If there is one sample too many after this remove the first one
-            # by convention
-            n_samples_intended = extract_len * tr.stats.sampling_rate
-            if len(tr.data) == n_samples_intended + 1:
-                tr.data = tr.data[1:len(tr.data)]
-            # if tr.stats.endtime - tr.stats.starttime != extract_len:
-            if tr.stats.npts < n_samples_intended:
-                Logger.warning(
-                    "Insufficient data ({rlen} s) for {tr_id}, discarding. "
-                    "Check that your traces are at least of length {length} s,"
-                    " with a pre_pick time of at least {prepick} s!".format(
-                        rlen=tr.stats.endtime - tr.stats.starttime,
-                        tr_id=tr.id, length=extract_len, prepick=pre_pick))
-                continue
+        # If there is one sample too many after this remove the first one
+        # by convention
+        n_samples_intended = extract_len * tr.stats.sampling_rate
+        if len(tr.data) == n_samples_intended + 1:
+            tr.data = tr.data[1:len(tr.data)]
+        # if tr.stats.endtime - tr.stats.starttime != extract_len:
+        if tr.stats.npts < n_samples_intended:
+            Logger.warning(
+                "Insufficient data ({rlen} s) for {tr_id}, discarding. "
+                "Check that your traces are at least of length {length} s,"
+                " with a pre_pick time of at least {prepick} s!".format(
+                    rlen=tr.stats.endtime - tr.stats.starttime,
+                    tr_id=tr.id, length=extract_len, prepick=pre_pick))
+            continue
         stream_sliced.update(
             {seed_pick_id.phase_hint:
              stream_sliced[seed_pick_id.phase_hint] + tr})
@@ -337,8 +350,9 @@ def _compute_dt_correlations(master, catalog, stream_dict, event_id_mapper,
                 if net_loc_normalized:
                     tr.stats.__dict__.update(
                         {'network': std_net, 'location': std_loc})
-    Logger.info(
-        f"Correlating {str(master.resource_id)}: reconstructed shared memory")
+    if shm_data_shape and shm_dtype:
+        Logger.info(
+            f"Correlating {str(master.resource_id)}: reconstructed shared memory")
 
     master_stream = _prepare_stream(
         stream=stream_dict[str(master.resource_id)], event=master,
@@ -365,8 +379,8 @@ def _compute_dt_correlations(master, catalog, stream_dict, event_id_mapper,
             continue
         tt1 = pick.time - master_origin_time
         master_tts.update({
-            "{0}_{1}".format(
-                pick.waveform_id.station_code,
+            "{0}_{1}_{2}".format(
+                pick.waveform_id.station_code, pick.waveform_id.channel_code,
                 (pick.phase_hint if full_phase_hint else pick.phase_hint[0])
                 ): tt1})
 
@@ -393,6 +407,8 @@ def _compute_dt_correlations(master, catalog, stream_dict, event_id_mapper,
     # Reorder event_ids according to original order
     event_ids = [key for key in event_dict.keys() if key in event_ids]
     if len(event_ids) == 0:
+        Logger.warning('No events to correlate with master %s',
+                       master.resource_id)
         if write_dt_from_workers:
             return None
         return []
@@ -466,7 +482,8 @@ def _compute_dt_correlations(master, catalog, stream_dict, event_id_mapper,
             master_seed_ids = set(tr.id for tr in _master_stream)
             matched_seed_ids = set(
                 tr.id for st in used_matched_streams for tr in st)
-            if not matched_seed_ids.issubset(master_seed_ids):
+            if (not matched_seed_ids.issubset(master_seed_ids) and
+                    not master_seed_ids.issubset(matched_seed_ids)):
                 Logger.warning(
                     "After checking length there are no matched traces: "
                     f"master: {master_seed_ids}, matched: {matched_seed_ids}")
@@ -491,6 +508,12 @@ def _compute_dt_correlations(master, catalog, stream_dict, event_id_mapper,
                         shift = np.argmax(correlation) * delta
                     if cc_max < min_cc:
                         continue
+                    # Not sure yet why this is needed, but when using presliced
+                    # streams, there is a one-sample offset for master event
+                    # traces that are correlated against themselves. So
+                    # apparently all shifts need to be corrected by one sample.
+                    if pre_slice_stream:
+                        shift -= delta
                     shift -= shift_len
                     pick = [
                         p for p in event_dict[used_event_id].picks
@@ -518,8 +541,9 @@ def _compute_dt_correlations(master, catalog, stream_dict, event_id_mapper,
                         weight **= 2
                     diff_time.obs.append(
                         _DTObs(station=chan.channel[0],
-                               tt1=master_tts["{0}_{1}".format(
-                                   chan.channel[0], phase_hint)],
+                               tt1=master_tts["{0}_{1}_{2}".format(
+                                   chan.channel[0], chan.channel[1],
+                                   phase_hint)],
                                tt2=tt2, weight=weight,
                                full_phase_hint=full_phase_hint,
                                phase=(phase_hint if full_phase_hint
@@ -1297,6 +1321,13 @@ def write_correlations(catalog, stream_dict, extract_len, pre_pick, shift_len,
     if cc_thresh:
         min_cc = cc_thresh
         Logger.warning("cc_thresh is depreciated, use min_cc instead")
+    # Check if there are events with duplicate resource ids in the catalog -
+    # this would mess up all dictionaries and hence is not allowed.
+    n_uniq_resource_ids = len(set([event.resource_id.id for event in catalog]))
+    if n_uniq_resource_ids != len(catalog):
+        msg = (
+            "Catalog contains duplicate resource ids, this is not supported.")
+        raise ValueError(msg)
     max_workers = max_workers or cpu_count()
     # Remove existing dt.cc file if it exists
     if write_dt_from_workers:
