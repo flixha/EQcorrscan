@@ -105,7 +105,7 @@ def _xcorr_interp(ccc, dt, resample_factor=10, use_new_resamp_method=False,
         last_sample += 1
     num_samples = last_sample - first_sample + 1
     if num_samples < 3:
-        Logger.warning(
+        Logger.debug(
             "Fewer than 3 samples selected for fit to cross correlation: "
             "{0}, returning maximum in data".format(num_samples))
         return np.argmax(cc) * dt, np.amax(cc)
@@ -118,7 +118,7 @@ def _xcorr_interp(ccc, dt, resample_factor=10, use_new_resamp_method=False,
         cc[first_sample:last_sample + 1], deg=2, full=True)[:2]
     # check results of fit
     if coeffs[0] >= 0:
-        Logger.info("Fitted parabola opens upwards!")
+        Logger.debug("Fitted parabola opens upwards!")
     if residual > 0.1:
         Logger.info(
             "Residual in quadratic fit to cross correlation maximum larger "
@@ -130,7 +130,7 @@ def _xcorr_interp(ccc, dt, resample_factor=10, use_new_resamp_method=False,
     coeff = (4 * coeffs[0] * coeffs[2] - coeffs[1] ** 2) / (4 * coeffs[0])
     if coeff < np.amax(ccc) or coeff > 1.0 or not 0 < shift < len(ccc) * dt:
         # Sometimes the interpolation returns a worse result.
-        Logger.warning("Interpolation did not give an accurate result, "
+        Logger.debug("Interpolation did not give an accurate result, "
                        "returning maximum in data")
         return np.argmax(ccc) * dt, np.amax(ccc)
     return shift, coeff
