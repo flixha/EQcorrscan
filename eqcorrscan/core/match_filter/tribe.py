@@ -390,7 +390,7 @@ class Tribe(object):
                 parfile.write('\n')
         return self
 
-    def read(self, filename, cores=1):
+    def read(self, filename, cores=1, **kwargs):
         """
         Read a tribe of templates from a tar formatted file.
 
@@ -415,7 +415,7 @@ class Tribe(object):
             arc.extractall(path=temp_dir, members=_safemembers(arc))
             tribe_dir = glob.glob(temp_dir + os.sep + '*')[0]
             self._read_from_folder(
-                dirname=tribe_dir, cores=cores)
+                dirname=tribe_dir, cores=cores, **kwargs)
         shutil.rmtree(temp_dir)
         return self
 
