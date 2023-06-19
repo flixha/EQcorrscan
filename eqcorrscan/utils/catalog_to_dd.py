@@ -887,6 +887,7 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
                                prepare_sub_stream_dicts=False,
                                weight_by_square=True, full_phase_hint=False,
                                write_dt_from_workers=False,
+                               resume_from_event=0,
                                *args, **kwargs):
     """
     Generate groups of differential times for a catalog.
@@ -1032,10 +1033,10 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
             # If desired, parallelize over traces instead of events:
             max_trace_workers = max_trace_workers or cpu_count()
             additional_args.update(dict(max_workers=max_trace_workers))
-            for i, master in enumerate(sparse_catalog):
+            for i, master in enumerate(sparse_catalog[resume_from_event:]):
                 master_id = str(master.resource_id)
                 sub_catalog = [ev for j, ev in enumerate(sparse_catalog)
-                               if distance_filter[i][j]]
+                               if distance_filter[i+resume_from_event][j]]
                 if master_id not in additional_args["stream_dict"].keys():
                     Logger.warning(
                         f"{master_id} not in waveforms, skipping")
@@ -1044,7 +1045,8 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
                     master_id: _compute_dt_correlations(
                         master, sub_catalog, **additional_args)})
                 Logger.info(
-                    f"Completed correlations for core event {i} of {n}")
+                    "Completed correlations for core event %s of %s",
+                    i+resume_from_event, n)
         else:
             # Move trace data into shared memory
             if net_loc_normalized:
@@ -1110,7 +1112,8 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
                  if master_filter[i]
                  and ev.resource_id in sub_stream_dict.keys()]
                 for master_filter, sub_stream_dict in zip(
-                    distance_filter, sub_stream_dicts))
+                    distance_filter[resume_from_event:],
+                    sub_stream_dicts[resume_from_event:]))
 
             with pool_boy(Pool, n, cores=max_workers) as pool:
                 # Parallelize over events instead of traces
@@ -1123,11 +1126,12 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
                        args=(master, *_prep_sub_stream_dicts(
                            stream_dict, [master], sub_catalog,
                            seed_id_trace_dicts, prepare_sub_stream_dicts,
-                           distance_filter=distance_filter[i],
+                           distance_filter=distance_filter[
+                               i+resume_from_event],
                            max_neighbors=max_neighbors)),
                        kwds=additional_args)
                     for i, (sub_catalog, master) in enumerate(
-                        zip(sub_catalogs, sparse_catalog))
+                        zip(sub_catalogs, sparse_catalog[resume_from_event:]))
                     # pool.apply_async(
                     #     _compute_dt_correlations,
                     #     args=(master, sub_catalog, sub_stream_dict),
@@ -1252,6 +1256,7 @@ def write_correlations(catalog, stream_dict, extract_len, pre_pick, shift_len,
                        all_horiz=False, max_workers=None,
                        parallel_process=False, weight_by_square=True,
                        full_phase_hint=False, write_dt_from_workers=False,
+                       resume_from_event=0,
                        *args, **kwargs):
     """
     Write a dt.cc file for hypoDD input for a given list of events.
@@ -1329,8 +1334,14 @@ def write_correlations(catalog, stream_dict, extract_len, pre_pick, shift_len,
             "Catalog contains duplicate resource ids, this is not supported.")
         raise ValueError(msg)
     max_workers = max_workers or cpu_count()
+    # Check if we try to resume a previous run:
+    if resume_from_event != 0:
+        if not write_dt_from_workers:
+            raise ValueError(
+                "Cannot resume from event if not writing dt.cc from workers"
+                " - set write_dt_from_workers=True")
     # Remove existing dt.cc file if it exists
-    if write_dt_from_workers:
+    if write_dt_from_workers and resume_from_event == 0:
         if os.path.exists("dt.cc"):
             os.remove("dt.cc")
     processed_stream_dict = stream_dict
@@ -1363,7 +1374,8 @@ def write_correlations(catalog, stream_dict, extract_len, pre_pick, shift_len,
         interpolate=interpolate, all_horiz=all_horiz,
         weight_by_square=weight_by_square, full_phase_hint=full_phase_hint,
         pre_slice_stream=pre_slice_stream,
-        write_dt_from_workers=write_dt_from_workers, **kwargs)
+        write_dt_from_workers=write_dt_from_workers,
+        resume_from_event=resume_from_event, **kwargs)
     if not write_dt_from_workers:
         with open("dt.cc", "w") as f:
             for master_id, linked_events in correlation_times.items():
