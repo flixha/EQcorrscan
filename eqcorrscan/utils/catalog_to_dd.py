@@ -910,6 +910,23 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
         {event.resource_id.id: integer_id}
     :type max_sep: float
     :param max_sep: Maximum hypocentral separation in km to link events
+    :type min_max_sep: float
+    :param min_max_sep:
+        Smallest possible maximum separation (max_sep) distance for the
+        distance filter. Only relevant when max_neighbors is set.
+    :type max_max_sep: float
+    :param max_max_sep:
+        Largest possible maximum separation (max_sep) distance for the
+        distance filter. Only relevant when max_neighbors is set.
+    :type max_neighbors: int
+    :param max_neighbors:
+        Maximum number of neighbors to correlate against. If None, all events
+        within max_sep will be correlated against. If set, the max_sep will
+        limit the number of neighbors to correlate against a master evnet which
+        saves time and memory. This feature is useful when the event catalog
+        contains dense clusters (where correlating all events within max_sep
+        would be overkill) and sparser areas (where a minimum number of correla-
+        tions are still desired).
     :type min_link: int
     :param min_link: Minimum shared phase observations to link events
     :type min_cc: float
@@ -935,10 +952,48 @@ def compute_differential_times(catalog, correlation, stream_dict=None,
         Maximum number of workers for parallel correlation of traces insted of
         events. If None then all threads will be used (but can only be used
         when max_workers = 1).
+    :type use_shared_memory: bool
+    :param use_shared_memory:
+        Whether to use shared memory for trace data. using shared memory can
+        speed up the process of moving trace data into the worker processes.
+    :type net_loc_normalized: bool
+    :param net_loc_normalized:
+        Whether to normalize network and location codes to std_net and std_loc
+        for correlation, in case your data may contain traces for the same
+        station where the network and location codes are not consistent.
+    :type std_net: str
+    :param std_net: Standard network code to normalize to.
+    :type std_loc: str
+    :param std_loc: Standard location code to normalize to.
+    :type prepare_sub_stream_dicts: bool
+    :param prepare_sub_stream_dicts:
+        Whether to prepare subsets of the stream dict for each event. If True,
+        only the traces that can be correlated against the master stream will
+        be included in the sub-stream dict and sent to the workers. If False,
+        the full stream_dict will be returned for each event.
     :type weight_by_square: bool
     :param weight_by_square:
         Whether to compute correlation weights as the square of the maximum
         correlation (True), or the maximum correlation (False).
+    :type full_phase_hint: bool
+    :param full_phase_hint:
+        Whether to use the full phase hint (True) or just the first character
+        (e.g., 'P' instead of 'Pn') for the phase hint.
+    :type write_dt_from_workers: bool
+    :param write_dt_from_workers:
+        Whether to write the correlation values directly from the workers to
+        the output file. if True, then correlation values will be written to
+        the output file once a worker has compelted all correlations for one
+        master event. This can save memory by not needing to store all the
+        correlation values in memory before writing them to the output file. It
+        also helps to store the partial results in case of a crash (e.g., due to
+        memory overload).
+    :type resume_from_event: int
+    :param resume_from_event:
+        Index of the event to start from when resuming from a previous run.
+        This is used to skip events that have already been correlated and
+        written to the output file. This is only used when
+        write_dt_from_workers is True.
 
     :rtype: dict
     :return: Dictionary of differential times keyed by event id.
